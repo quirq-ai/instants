@@ -30,8 +30,8 @@ export default defineConfig({
     ? {}
     : {
         webServer: {
-          command:
-            "node scripts/run-framework.mjs dev --hostname 127.0.0.1 --port 5180",
+          // CI validates the built deployment, while local runs use Next dev.
+          command: `node node_modules/next/dist/bin/next ${process.env.CI ? "start" : "dev"} --hostname 127.0.0.1 --port 5180`,
           url: baseURL,
           reuseExistingServer: !process.env.CI,
           timeout: 120_000,

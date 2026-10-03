@@ -1,6 +1,6 @@
 # Architecture
 
-Instants is a React client UI rendered through Vinext's Next.js-compatible app structure. TypeScript describes components and shared data shapes. Vite and the existing Cloudflare/Sites scaffold provide development and build infrastructure. The social demo itself does not call a backend.
+Instants is a React client UI rendered with the Next.js App Router. TypeScript describes components and shared data shapes. Standard Next.js commands provide the default development server and production build, including deployment to Vercel. The social demo itself does not call a backend.
 
 ## Routes and rendering
 
@@ -55,7 +55,11 @@ When supported by the host, `use-theme-tool.ts` registers an optional, feature-d
 
 ## Build and hosting boundary
 
-`scripts/run-framework.mjs` selects the configured execution profile and runs the development or build command. A normal clone can use the safe `build/hosting.example.json` template; an optional `.openai/hosting.json` can override it for a specific environment. Keep that local hosting identity out of contributions.
+`npm run dev`, `npm run build`, and `npm start` invoke Next.js directly. The production build is written to `.next`; `npm start` serves it on port 5180. The repository's `vercel.json` selects the Next.js framework, `npm ci`, `npm run build`, and the `.next` output directory. Import the repository root (`.`) in Vercel. No `.openai` configuration, Cloudflare bindings, API keys, or Sites account is needed for this path.
+
+GitHub CI builds the production Next.js application and runs browser tests against that production server. Local browser tests start the Next.js development server by default, or use an existing server supplied through `PLAYWRIGHT_BASE_URL`.
+
+The optional `dev:sites` and `build:sites` commands retain the original `scripts/run-framework.mjs` entry point, which selects the configured Sites execution profile. That path can use the safe `build/hosting.example.json` template; an optional `.openai/hosting.json` can override it for a specific environment. `start:sites` serves the resulting worker with Wrangler. Keep local hosting identities out of contributions. These commands are separate from the Vercel build.
 
 `build/`, `scripts/`, and the connector-related helpers contain hosting infrastructure inherited from the starter. The presence of database packages, connector helpers, or worker bindings does not mean the demo's likes, messages, or uploads are stored remotely. Adding a real backend requires explicit work on authentication, authorization, storage, validation, and the UI's persistence contract.
 

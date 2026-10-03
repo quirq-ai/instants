@@ -2,7 +2,7 @@
 
 **Good moments don't wait.**
 
-A responsive social UI prototype for invitations, quick votes, and moments that need a response now. Built with React, TypeScript, and Vinext, with configurable branding, light and dark themes, and a motion system that keeps scrolling in the browser's hands.
+A responsive social UI prototype for invitations, quick votes, and moments that need a response now. Built with React, TypeScript, and Next.js, with configurable branding, light and dark themes, and a motion system that keeps scrolling in the browser's hands.
 
 [Get started](#run-locally) · [Motion](#motion-and-gestures) · [Architecture](#architecture) · [Contribute](CONTRIBUTING.md) · [MIT license](LICENSE)
 
@@ -38,16 +38,34 @@ Open [localhost:5180](http://localhost:5180) for the app or [localhost:5180/moti
 
 | Command | Purpose |
 | --- | --- |
-| `npm run dev` | Start the development server on port 5180 |
+| `npm run dev` | Start the Next.js development server on port 5180 |
 | `npm run lint` | Check source with ESLint |
 | `npm run typecheck` | Check TypeScript without emitting files |
 | `npm test` | Run the Node unit tests |
 | `npm run test:e2e` | Run the Playwright browser tests |
-| `npm run build` | Build the application |
+| `npm run build` | Create the Next.js production build in `.next` |
+| `npm start` | Serve the production build on port 5180 |
 
 Before the first browser test run, install its browser with `npx playwright install chromium`. On Linux, CI may also need Playwright's system dependencies: `npx playwright install --with-deps chromium`.
 
-The build uses [build/hosting.example.json](build/hosting.example.json) when a local `.openai/hosting.json` is absent. The latter is optional, environment-specific configuration. A normal clone does not require access to the original hosting workspace. See [architecture](docs/architecture.md) for the build boundary.
+The default development, build, and production commands use standard Next.js. The optional Sites scaffold has separate `dev:sites`, `build:sites`, and `start:sites` commands; it is not needed to run locally or deploy to Vercel. See [architecture](docs/architecture.md#build-and-hosting-boundary) for that boundary.
+
+## Deploy to Vercel
+
+Import `quirq-ai/instants` into Vercel with the repository root (`.`) as the **Root Directory**. The repository itself is the app; do not enter `instagram-ui` as a subdirectory. Use Node.js 22.x. No API keys or environment variables are required for this frontend demo.
+
+The committed [vercel.json](vercel.json) defines the deployment settings:
+
+| Setting | Value |
+| --- | --- |
+| Framework | Next.js |
+| Install command | `npm ci` |
+| Build command | `npm run build` |
+| Output directory | `.next` |
+
+Clear conflicting dashboard overrides from an earlier import, including any Vite, Vinext, `dist`, or Cloudflare build settings, so the project uses the checked-in configuration. Keep the Root Directory at `.`.
+
+When the GitHub repository is connected to the Vercel project, a push to its production branch starts a deployment. For an existing failed deployment, deploy the latest commit after correcting the settings; rebuilding an older commit will still use its old scripts. Check the Vercel build logs to confirm the deployed revision and outcome.
 
 ## Motion and gestures
 

@@ -11,7 +11,7 @@ npm ci
 npm run dev
 ```
 
-The app runs on port 5180. `/motion` is the playground for shared motion primitives. No credentials are needed; the optional local hosting configuration falls back to `build/hosting.example.json`.
+The Next.js app runs on port 5180. `/motion` is the playground for shared motion primitives. No credentials or local hosting configuration are needed. The optional Sites scaffold uses separate commands described in [the architecture guide](docs/architecture.md#build-and-hosting-boundary).
 
 ## Make a focused change
 
@@ -34,6 +34,10 @@ npm run build
 ```
 
 Install Playwright once per browser setup; on Linux use `npx playwright install --with-deps chromium` if system dependencies are missing. Add or update tests when behavior changes, especially gesture classification, persistence boundaries, or shared state.
+
+Local browser tests use Next.js development mode by default. CI builds Next.js first and runs the same tests against its production server. To inspect the production app locally, run `npm run build` followed by `npm start`; it serves on port 5180. Set `PLAYWRIGHT_BASE_URL` to the running server's URL when testing a server you started yourself.
+
+For deployment changes, preserve the standard Next.js build and the settings in `vercel.json`. Vercel imports use the repository root (`.`); see [the deployment guide](README.md#deploy-to-vercel). The optional `dev:sites`, `build:sites`, and `start:sites` scripts do not participate in Vercel deployments.
 
 For UI changes, inspect both themes at a narrow mobile width and a desktop width. Check keyboard focus, Escape dismissal, relevant touch/mouse gestures, and reduced motion. Include a screenshot or short recording when it helps explain the result. Record any checks you could not run and why.
 
