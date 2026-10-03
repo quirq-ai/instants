@@ -12,11 +12,16 @@ const dock = (page: Page, name: string) =>
     .getByRole("navigation", { name: "Mobile navigation" })
     .getByRole("button", { name, exact: true });
 
+async function openReady(page: Page, path = "/") {
+  await page.goto(path);
+  await expect(page.locator('[data-app-ready="true"]')).toBeAttached();
+}
+
 test("mobile glass dock, quick responses, and persisted theme", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await openReady(page);
   await expect(page).toHaveTitle("Instants");
   await expect(page.locator('.mobile-brand img[alt="quirq"]')).toBeVisible();
   await expect(page.locator(".mobile-nav button")).toHaveCount(5);
@@ -60,7 +65,7 @@ test("navigation restores the feed and repeated Home returns to the top", async 
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await openReady(page);
   await expect(page.locator(".post-card").first()).toBeVisible();
   await page.evaluate(() => window.scrollTo({ top: 900, behavior: "instant" }));
   await expect.poll(() => page.evaluate(() => scrollY)).toBe(900);
@@ -78,7 +83,7 @@ test("navigation restores the feed and repeated Home returns to the top", async 
 test("carousel mouse drag, keyboard navigation, and double-click liking", async ({
   page,
 }) => {
-  await page.goto("/");
+  await openReady(page);
   const first = page.locator(".post-card").first();
   const track = first.locator(".motion-carousel-track");
   await track.scrollIntoViewIfNeeded();
@@ -101,7 +106,7 @@ test("story hold pauses, swipe advances, and swipe down dismisses", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await openReady(page);
   await page.locator(".story:not(.your-story)").first().click();
   const frame = page.locator(".story-frame");
   await expect(frame).toBeVisible();
@@ -138,7 +143,7 @@ test("motion lab controls, focus return, and reduced motion", async ({
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/motion");
+  await openReady(page, "/motion");
   await expect(
     page.getByRole("heading", { name: "Made to feel natural." }),
   ).toBeVisible();
@@ -197,7 +202,10 @@ test("native touch swipe and double tap work in the feed", async ({
     /https:\/\/(images\.unsplash\.com|fonts\.(googleapis|gstatic)\.com)/,
     (route) => route.abort(),
   );
-  await page.goto(process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:5180");
+  await openReady(
+    page,
+    process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:5180",
+  );
   const first = page.locator(".post-card").first();
   const track = first.locator(".motion-carousel-track");
   await track.scrollIntoViewIfNeeded();

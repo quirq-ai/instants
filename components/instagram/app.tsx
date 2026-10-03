@@ -46,6 +46,7 @@ import {
 } from "./overlays";
 import { useThemeTool } from "./use-theme-tool";
 import { scrollToTop, prefersReducedMotion } from "@/lib/motion";
+import { useClientReady } from "@/hooks/use-client-ready";
 
 const nav = [
   { name: "Home", icon: HomeIcon },
@@ -57,6 +58,7 @@ const nav = [
   { name: "Create", icon: SquarePlus },
 ];
 export default function InstantsApp() {
+  const ready = useClientReady();
   const [theme, setTheme] = useState<Theme>(brand.defaultTheme as Theme);
   const [view, setView] = useState("Home");
   const [feed, setFeed] = useState("for-you");
@@ -182,7 +184,12 @@ export default function InstantsApp() {
         post.userId === "you",
     );
   return (
-    <SidebarProvider className="ig-app">
+    <SidebarProvider
+      className="ig-app"
+      inert={!ready}
+      aria-busy={!ready}
+      data-app-ready={ready}
+    >
       <Sidebar collapsible="none" className="ig-sidebar">
         <button
           className="brand"

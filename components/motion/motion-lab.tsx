@@ -27,6 +27,7 @@ import { brand } from "@/lib/brand";
 import { motion, scrollToTop, useReducedMotion } from "@/lib/motion";
 import { Photo, PoweredBy, Wordmark } from "@/components/instagram/shared";
 import { MotionCarousel } from "@/components/motion/carousel";
+import { useClientReady } from "@/hooks/use-client-ready";
 import {
   Dialog,
   DialogClose,
@@ -95,6 +96,7 @@ function DemoHeading({
 }
 
 export function MotionLab() {
+  const ready = useClientReady();
   const reducedMotion = useReducedMotion();
   const theme = useSyncExternalStore(
     subscribeTheme,
@@ -144,7 +146,13 @@ export function MotionLab() {
   };
 
   return (
-    <div className="motion-lab" data-reduced-motion={reducedMotion}>
+    <div
+      className="motion-lab"
+      data-reduced-motion={reducedMotion}
+      inert={!ready}
+      aria-busy={!ready}
+      data-app-ready={ready}
+    >
       <header className="motion-lab-header">
         <div className="motion-lab-header-inner">
           <Link
