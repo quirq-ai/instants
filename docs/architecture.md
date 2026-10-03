@@ -1,68 +1,63 @@
 # Architecture
 
-Instants is a React client UI rendered with the Next.js App Router. TypeScript describes components and shared data shapes. Standard Next.js commands provide the default development server and production build, including deployment to Vercel. The social demo itself does not call a backend.
+Instants has two parts: the **UI** presents work and the people waiting for a response; the **engine** records a person's activity and rebuilds their private demo state. Both ship in one Next.js application. The split is a code boundary, not a pair of separately deployed services.
 
-## Routes and rendering
+| Section | Owns                                                                           | Start here                       |
+| ------- | ------------------------------------------------------------------------------ | -------------------------------- |
+| UI      | Feed, attention queue, conversations, navigation, overlays, themes, and motion | [UI architecture](ui.md)         |
+| Engine  | Activity schema, validation, persistence, and replay into visible state        | [Engine architecture](engine.md) |
 
-`app/layout.tsx` sets metadata and brand CSS, loads the optional font stylesheet, and restores the saved theme before hydration. `app/page.tsx` mounts `InstantsApp`. The `/motion` route presents the reusable motion components in isolation.
+```mermaid
+flowchart LR
+    brand["Brand and motion JSON"] --> ui["UI: feed, attention queue, messages"]
+    seed["Mock teams and work"] --> projection["Replay activity into view state"]
+    ui -->|"User action"| journal["Engine: private activity journal"]
+    journal --> projection
+    projection -->|"Updated props"| ui
+    journal -->|"Local Node runtime"| api["Session API and validation"]
+    api --> files["session / UUID / session.json"]
+    journal -->|"Vercel demo"| browser["Browser localStorage"]
+    journal --> download["Download JSON"]
+```
 
-Home, Explore, Reels, Messages, Saved, and Profile are views inside `InstantsApp`; they are not separate application routes. A seeded `?post=<id>` query opens a post detail dialog on initial load. New posts exist only in the current session, so their IDs do not create durable deep links.
+## The product model
 
-## Component ownership
+The sample feed follows two companies, `xo_builders` and `quirq_ai`, sharing work for feedback, testing, and decisions. The avatar rail is an attention queue: a DM, comment, mention, or review request identifies a person who needs a response. Opening a queue item keeps its request and relevant work together. Replying or marking it resolved updates that person's private demo state.
 
-| Location | Responsibility |
-| --- | --- |
-| `components/instagram/app.tsx` | Navigation, shared session state, overlays, and per-view scroll positions |
-| `components/instagram/post-card.tsx` | Feed presentation, photo navigation, and post actions |
-| `components/instagram/views.tsx` | Explore, profile, messages, and still-photo Reels views |
-| `components/instagram/overlays.tsx` | Stories, post details, search/activity, composer, and sharing |
-| `components/instagram/instant-response.tsx` | Countdown, response choices, and poll result presentation |
-| `components/instagram/shared.tsx` | Mock-derived types, account lookup, photos, avatars, and branding |
-| `components/motion/carousel.tsx` | Shared scroll-snap carousel and input handling |
-| `components/motion/motion-lab.tsx` | Interactive motion playground |
-| `lib/motion.ts` | Shared motion configuration and helpers |
-| `lib/motion-core.mjs` | Pure gesture, slide-index, and double-tap rules |
-| `lib/motion-tokens.ts` | Motion JSON to CSS custom properties |
-| `lib/brand.ts` | Brand JSON to theme CSS variables |
-| `components/ui/` | Reusable UI primitives, including dialogs and menus |
-| `app/globals.css` | Responsive layout, theme styling, and motion presentation |
+The companies and teammate conversations are sample content. There is no account connection, real delivery, shared team database, or real-time synchronization. Each person has a separate journal for now; all journals replay against the same versioned seed data.
 
-The `instagram` directory name is a historical source path. Product naming and branding come from `config/brand.json`.
+## Routes and source map
 
-## State and data lifetime
+| Location                    | Responsibility                                                                |
+| --------------------------- | ----------------------------------------------------------------------------- |
+| `app/layout.tsx`            | Metadata, brand variables, font stylesheet, saved theme bootstrap             |
+| `app/page.tsx`              | Application entry point                                                       |
+| `app/motion/page.tsx`       | Interactive motion playground                                                 |
+| `app/api/session/route.ts`  | Private local session read/append boundary; hosted mode selection             |
+| `components/instagram/`     | Product UI; the directory retains its original source name                    |
+| `components/collaboration/` | Categorized people queue, request dialog, team and session presentation       |
+| `components/motion/`        | Shared carousel and motion examples                                           |
+| `components/ui/`            | Dialogs, menus, and other reusable UI primitives                              |
+| `hooks/use-session.ts`      | Browser session controller and persistence status                             |
+| `engine/`                   | Activity types, runtime validation, state projection, and session persistence |
+| `config/`                   | Brand and motion configuration                                                |
+| `data/mock.json`            | Team accounts, work, conversations, and attention requests                    |
+| `session/`                  | Local runtime journals; excluded from Git                                     |
 
-`data/mock.json` seeds users, posts, conversations, comments, and Explore content. `InstantsApp` owns shared changes such as likes, saves, following, comments, messages, and instant responses. Child components receive values and callbacks so the feed and post details reflect the same session state.
-
-| State | Lifetime |
-| --- | --- |
-| Seed data | Versioned JSON; loaded with the application |
-| Likes, saves, following, replies, new posts, messages | Current application session; reset on refresh |
-| Instant deadlines | Calculated from the current time when the app opens; reset on refresh |
-| Per-view scroll positions | Current mounted application session |
-| Profile edits | Local profile preview |
-| Selected theme | `ig-ui-theme` in localStorage |
-| Selected upload | Read locally with `FileReader` and used as an in-memory image preview |
-
-New posts receive a 30-minute response window. Story replies and shares update demo conversations; they do not send messages to real people. There is no account authentication or persistent social database behind these interactions.
-
-## Configuration and external assets
-
-`config/brand.json` controls metadata, labels, logos, typography, theme colors, and dock appearance. `lib/brand.ts` converts those values to CSS custom properties. `config/motion.json` supplies the shared motion timings and gesture thresholds described in [motion.md](motion.md).
-
-The browser loads remote Unsplash images and the optional font stylesheet directly. The `Photo` component displays an accessible fallback when an image fails. To remove those network dependencies, use local images under `public/` and clear or replace `fontStylesheet`.
-
-When supported by the host, `use-theme-tool.ts` registers an optional, feature-detected theme control through `document.modelContext`. The ordinary theme toggle works without that capability.
+Home, Explore, Reels, Messages, Saved, and Profile are views inside `InstantsApp`, not separate application routes. Seeded `?post=<id>` links open a post detail dialog. A privately created post is only available where its journal exists; sharing its ID does not publish it to another person's session.
 
 ## Build and hosting boundary
 
-`npm run dev`, `npm run build`, and `npm start` invoke Next.js directly. The production build is written to `.next`; `npm start` serves it on port 5180. The repository's `vercel.json` selects the Next.js framework, `npm ci`, `npm run build`, and the `.next` output directory. Import the repository root (`.`) in Vercel. No `.openai` configuration, Cloudflare bindings, API keys, or Sites account is needed for this path.
+`npm run dev`, `npm run build`, and `npm start` invoke Next.js directly. The production build is written to `.next`; development and production servers use port 5180. The repository's `vercel.json` selects the Next.js framework, `npm ci`, `npm run build`, and `.next`. Import the repository root (`.`) into Vercel. No API keys, database, `.openai` configuration, or Cloudflare bindings are needed for this path.
 
-GitHub CI builds the production Next.js application and runs browser tests against that production server. Local browser tests start the Next.js development server by default, or use an existing server supplied through `PLAYWRIGHT_BASE_URL`.
+In local Node development, the session API persists JSON under `session/`. On Vercel, the app uses browser storage instead of depending on a writable, durable server filesystem. This preserves a usable hosted demo; it does not provide cross-device or team persistence. See the [storage modes and privacy contract](engine.md#storage-modes).
 
-The optional `dev:sites` and `build:sites` commands retain the original `scripts/run-framework.mjs` entry point, which selects the configured Sites execution profile. That path can use the safe `build/hosting.example.json` template; an optional `.openai/hosting.json` can override it for a specific environment. `start:sites` serves the resulting worker with Wrangler. Keep local hosting identities out of contributions. These commands are separate from the Vercel build.
+GitHub CI builds the production Next.js application and runs browser tests against its production server. Local browser tests start the development server by default or use an existing server supplied through `PLAYWRIGHT_BASE_URL`.
 
-`build/`, `scripts/`, and the connector-related helpers contain hosting infrastructure inherited from the starter. The presence of database packages, connector helpers, or worker bindings does not mean the demo's likes, messages, or uploads are stored remotely. Adding a real backend requires explicit work on authentication, authorization, storage, validation, and the UI's persistence contract.
+The optional `dev:sites`, `build:sites`, and `start:sites` commands retain the original Sites scaffold. Its `scripts/run-framework.mjs` entry point can use `build/hosting.example.json`, with an untracked `.openai/hosting.json` for a specific environment. These commands are separate from the supported Next.js/Vercel session-storage path. Node filesystem persistence is not a Cloudflare Worker storage adapter.
 
-## Extension points
+Database packages and connector helpers inherited from the starter do not imply a connected backend. A shared team release will need authentication, team membership and authorization, durable storage, and a delivery/synchronization contract before those features are real.
 
-Start with JSON changes for branding or sample content. Add new social behaviors through the existing state owner and callbacks, keeping shared state consistent across views. Put reusable motion behavior in `components/motion/` or `lib/motion.ts` and demonstrate it on `/motion`. Preserve visible controls, keyboard access, and reduced-motion behavior alongside gesture support.
+## Changing the application
+
+Change sample content in JSON, presentation in UI components, and persistence rules in the engine. Keep event payloads independent of React elements, DOM nodes, and animation state. A new persistent interaction should have a validated event, a replay rule, and a behavior test; a new visual interaction should reuse the established motion and accessibility primitives. The [contribution guide](../CONTRIBUTING.md) covers the checks.

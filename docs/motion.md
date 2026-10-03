@@ -6,15 +6,15 @@ Instants uses native browser scrolling plus CSS transitions and keyframes. The g
 
 `config/motion.json` is the source of truth. `lib/motion-tokens.ts` generates CSS custom properties, `lib/motion-core.mjs` holds pure gesture rules, and `lib/motion.ts` exposes the shared values and React helpers. Components and CSS use them for consistent behavior.
 
-| Duration | Default | Use |
-| --- | --- | --- |
-| Press | 120 ms | Short interaction feedback |
-| Standard | 240 ms | Routine state changes |
-| Navigation | 320 ms | View and navigation feedback |
-| Sheet | 360 ms | Overlay movement |
-| Like | 650 ms | Like burst feedback |
+| Duration   | Default | Use                          |
+| ---------- | ------- | ---------------------------- |
+| Press      | 120 ms  | Short interaction feedback   |
+| Standard   | 240 ms  | Routine state changes        |
+| Navigation | 320 ms  | View and navigation feedback |
+| Sheet      | 360 ms  | Overlay movement             |
+| Like       | 650 ms  | Like burst feedback          |
 
-The standard easing is `cubic-bezier(.2, .8, .2, 1)` and the spring-style easing is `cubic-bezier(.22, 1, .36, 1)`. The default horizontal story swipe threshold is 44 CSS pixels; the downward dismissal threshold is 96 CSS pixels. These are gesture decision distances, not scroll momentum settings.
+The standard easing is `cubic-bezier(.2, .8, .2, 1)` and the spring-style easing is `cubic-bezier(.22, 1, .36, 1)`. The default horizontal gesture threshold is 44 CSS pixels; the downward dismissal threshold is 96 CSS pixels. These are gesture decision distances, not scroll momentum settings.
 
 ## Scroll ownership
 
@@ -31,21 +31,36 @@ import { MotionCarousel } from "@/components/motion/carousel";
 
 <MotionCarousel
   images={["/first-photo.jpg", "/second-photo.jpg"]}
-  alt="An afternoon by the coast"
-  label="Coastal photo set"
+  alt="Mobile dashboard designs ready for review"
+  label="Work preview carousel"
   onDoubleTap={() => setLiked(true)}
-/>
+/>;
 ```
 
 Focus the track and use the left/right arrow keys to move between photos. Carousel CSS lives beside the component in `components/motion/carousel.css`.
 
 Keep the vertical page scroll available while interacting with a carousel. A horizontal drag must not accidentally activate a post action. A single photo should remain usable without unnecessary carousel controls. Preserve meaningful image descriptions and labeled navigation buttons when reusing the component.
 
-## Stories
+## Attention requests
 
-Stories keep their visible previous/next, pause, and close controls. Horizontal gestures navigate after release; a downward gesture dismisses when its threshold is reached. Hold on the story to pause until release. Small gestures and canceled pointer sequences leave the current story intact. The viewer closes after advancing past the final story.
+The people rail opens contextual DM, comment, mention, and review requests. Swipe the request header horizontally to move between requests, or down to dismiss when the threshold is reached. Visible previous/next and close controls remain available. Small gestures and canceled pointer sequences leave the current request intact.
 
-Gesture handling must distinguish horizontal intent from downward dismissal and avoid stealing input from controls or the reply field. Changes to thresholds should be exercised on an actual touch device as well as in browser automation.
+The conversation body retains native scrolling. Requests do not auto-advance or require holding to pause: a person can take time to read and write. Gesture handling must avoid stealing input from controls or the reply field. Opening or dismissing a request does not resolve it; reply and resolve actions belong to the [engine](engine.md).
+
+```mermaid
+stateDiagram-v2
+    [*] --> idle
+    idle --> tracking: Pointer down on header
+    tracking --> idle: Cancel or below threshold
+    tracking --> previous: Release right
+    tracking --> next: Release left
+    tracking --> dismissed: Release down
+    previous --> idle: Show request
+    next --> idle: Show request
+    dismissed --> [*]
+```
+
+Changes to thresholds should be exercised on an actual touch device as well as in browser automation.
 
 ## Feedback and reduced motion
 
@@ -59,7 +74,7 @@ Run `npm run lint`, `npm run typecheck`, `npm test`, `npm run test:e2e`, and `np
 
 1. Touch and wheel scrolling remain native; a vertical gesture starting on a carousel can still move the page.
 2. Carousel swipes, mouse drags, visible controls, and keyboard navigation agree on the active slide.
-3. Story gestures choose the intended direction, respect thresholds, and preserve pause, reply, and close controls.
+3. Request-header gestures choose the intended direction, respect thresholds, and preserve conversation scrolling, reply input, and visible controls.
 4. Returning to a view restores reading position and repeating Home returns to the top.
 5. Both themes render correctly at mobile and desktop sizes, with focus visible and reduced motion enabled.
 

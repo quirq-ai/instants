@@ -114,8 +114,8 @@ export function MotionLab() {
   const [selectedToken, setSelectedToken] =
     useState<keyof typeof motion.durations>("navigation");
   const [tokenAtEnd, setTokenAtEnd] = useState(false);
-  const [sheetChoice, setSheetChoice] = useState("Friends");
-  const [savedChoice, setSavedChoice] = useState("Friends");
+  const [sheetChoice, setSheetChoice] = useState("Both teams");
+  const [savedChoice, setSavedChoice] = useState("Both teams");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
 
@@ -312,9 +312,9 @@ export function MotionLab() {
                     <p>
                       {
                         [
-                          "Somewhere you wish you could stay.",
-                          "Slow mornings, good company.",
-                          "Taking the scenic route.",
+                          "A fresh build, ready for your review.",
+                          "Try the preview. Share what you notice.",
+                          "A quick decision keeps the team moving.",
                         ][index]
                       }
                     </p>
@@ -374,11 +374,11 @@ export function MotionLab() {
                 key={carouselVersion}
                 images={mock.posts[0].images}
                 alt={mock.posts[0].alt}
-                label="Coastal moments carousel"
+                label="Work preview carousel"
                 onIndexChange={setCarouselIndex}
               />
               <span className="motion-lab-image-label">
-                <span /> A postcard from Italy
+                <span /> A closer look at the work
               </span>
             </div>
             <div className="motion-lab-demo-footer">
@@ -397,8 +397,8 @@ export function MotionLab() {
           <section className="motion-lab-card">
             <DemoHeading
               number="03"
-              title="A little love goes a long way."
-              detail="Double-tap for a moment of delight."
+              title="Give good work some love."
+              detail="Double-tap to appreciate a teammate's work."
             />
             <div className="motion-lab-heart-demo">
               <button
@@ -438,7 +438,7 @@ export function MotionLab() {
               >
                 <Photo src={mock.posts[3].images[0]} alt={mock.posts[3].alt} />
                 <span className="motion-lab-heart-hint">
-                  <Heart size={15} /> Double-tap a good moment
+                  <Heart size={15} /> Double-tap good work
                 </span>
                 {heartVersion > 0 && liked && (
                   <span
@@ -461,8 +461,8 @@ export function MotionLab() {
                 </button>
                 <span aria-live="polite">
                   {liked
-                    ? "You and 7 others liked this moment"
-                    : "A good day starts here."}
+                    ? "You and 7 teammates liked this work"
+                    : "Small feedback keeps work moving."}
                 </span>
                 <Bookmark size={20} aria-hidden="true" />
               </div>
@@ -544,30 +544,30 @@ export function MotionLab() {
                       aria-hidden="true"
                     />
                     <SheetHeader>
-                      <SheetTitle>Who’s in on the moment?</SheetTitle>
+                      <SheetTitle>Who should review this?</SheetTitle>
                       <SheetDescription>
-                        A few good people make a good moment better.
+                        Preview a team choice. This demo does not send requests.
                       </SheetDescription>
                     </SheetHeader>
                     <div
                       className="motion-lab-audience"
                       role="group"
-                      aria-label="Moment audience"
+                      aria-label="Review team"
                     >
                       {[
                         {
-                          title: "Friends",
-                          detail: "The people you follow",
+                          title: "Both teams",
+                          detail: "Build and review together",
                           icon: User,
                         },
                         {
-                          title: "Close friends",
-                          detail: "Your inner circle",
+                          title: "xo_builders",
+                          detail: "Product, engineering, and testing",
                           icon: Heart,
                         },
                         {
-                          title: "Everyone",
-                          detail: "A moment worth sharing",
+                          title: "quirq_ai",
+                          detail: "Design, AI, and product feedback",
                           icon: Compass,
                         },
                       ].map(({ title, detail, icon: Icon }) => (

@@ -2,22 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import { BadgeCheck, Camera } from "lucide-react";
 import { brand } from "@/lib/brand";
-import mock from "@/data/mock.json";
-export { mock };
-export type User = (typeof mock.users)[number];
-export type Instant = {
-  kind: string;
-  title: string;
-  expiresInMinutes: number;
-  options: { id: string; label: string; count: number }[];
-};
-export type Post = Omit<(typeof mock.posts)[number], "instant"> & {
-  instant?: Instant;
-};
-export const getUser = (id: string) =>
-  id === "you"
-    ? { ...mock.currentUser, verified: false, following: true }
-    : mock.users.find((user) => user.id === id) || mock.users[0];
+export { mock, getUser, getCompany } from "@/lib/data";
+export type { User, Instant, Post } from "@/lib/data";
 export function Photo({
   src,
   alt,

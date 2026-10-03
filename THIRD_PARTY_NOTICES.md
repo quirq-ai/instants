@@ -4,10 +4,10 @@ The root [MIT license](LICENSE) covers original project code and documentation. 
 
 ## Vendored code
 
-| Material | Origin | License and notice |
-| --- | --- | --- |
-| `build/sites-vite-plugin.ts` | `@openai/sites-vite-plugin` 0.2.0; provenance retained in the source header | MIT, Copyright (c) 2026 OpenAI; [full notice](build/sites-vite-plugin.LICENSE) |
-| `vendor/shadcn-tailwind-4.13.0.css` | shadcn stylesheet | MIT, Copyright (c) 2023 shadcn; [full notice](vendor/shadcn-tailwind-4.13.0.LICENSE.md) |
+| Material                            | Origin                                                                      | License and notice                                                                      |
+| ----------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `build/sites-vite-plugin.ts`        | `@openai/sites-vite-plugin` 0.2.0; provenance retained in the source header | MIT, Copyright (c) 2026 OpenAI; [full notice](build/sites-vite-plugin.LICENSE)          |
+| `vendor/shadcn-tailwind-4.13.0.css` | shadcn stylesheet                                                           | MIT, Copyright (c) 2023 shadcn; [full notice](vendor/shadcn-tailwind-4.13.0.LICENSE.md) |
 
 Preserve these notices when redistributing the corresponding materials. Packages installed from `package-lock.json` retain their own licenses; consult the license files shipped with each package. This file is not an exhaustive dependency license inventory.
 
@@ -17,7 +17,7 @@ The sample data references photographs served from Unsplash. The photographs are
 
 One featured image is [Mike Swigunski's Italian coastline photograph](https://unsplash.com/photos/houses-on-mountain-near-sea-under-blue-sky-during-daytime-HXtjr6tJGv8). Other image URLs are listed in `data/mock.json`. Review the [Unsplash license](https://unsplash.com/license) and the relevant source assets before redistributing or substituting imagery. Replace remote URLs with assets you have the right to use when creating your own distribution.
 
-Accounts, captions, and conversations in the demo are fictional; the photographs are sample imagery, not assertions about the people named in the UI.
+Team accounts, work descriptions, and conversations are illustrative sample content for `xo_builders` and `quirq_ai`. The photographs are sample imagery, not assertions about real people, their roles, or their participation in those conversations.
 
 ## Fonts
 

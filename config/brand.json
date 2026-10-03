@@ -3,7 +3,7 @@
   "publisher": "quirq",
   "fontStylesheet": "https://fonts.googleapis.com/css2?family=Manrope:wght@700;800&display=swap",
   "favicon": "",
-  "description": "Good moments do not wait. Be there, weigh in, make it happen.",
+  "description": "Share work, test ideas, and give your team the reply they need. Your people and their requests, together in Instants.",
   "logo": {
     "text": "Instants",
     "image": "",
@@ -66,7 +66,7 @@
       "responseSurface": "#1c1d20"
     }
   },
-  "tagline": "Good moments don't wait.",
+  "tagline": "Good work moves together.",
   "poweredBy": {
     "label": "Powered by",
     "name": "quirq",

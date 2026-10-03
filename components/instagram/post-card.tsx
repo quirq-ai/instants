@@ -14,7 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, Verified, Post, getUser } from "./shared";
+import { Avatar, Verified, Post, getUser, getCompany } from "./shared";
 import { InstantResponse } from "./instant-response";
 import { MotionCarousel } from "@/components/motion/carousel";
 import { motion } from "@/lib/motion";
@@ -36,7 +36,7 @@ export default function PostCard({
   saved: boolean;
   onLike: () => void;
   onSave: () => void;
-  onComment: (text?: string) => void;
+  onComment: (text?: string) => boolean;
   onShare: () => void;
   onProfile: (id: string) => void;
   response?: string;
@@ -44,6 +44,7 @@ export default function PostCard({
   onRespond: (option: string) => void;
 }) {
   const user = getUser(post.userId);
+  const company = getCompany(post.companyId ?? user.companyId);
   const [comment, setComment] = useState("");
   const [burst, setBurst] = useState(false);
   const [burstVersion, setBurstVersion] = useState(0);
@@ -72,8 +73,21 @@ export default function PostCard({
             {user.verified && <Verified />}
             <span className="post-time">· {post.time}</span>
           </div>
-          <span className="post-location">{post.location}</span>
+          {company ? (
+            <span
+              className="post-location team-post-label"
+              title={post.location}
+            >
+              <i aria-hidden="true" style={{ background: company.color }} />
+              {company.handle}
+            </span>
+          ) : (
+            <span className="post-location">{post.location}</span>
+          )}
         </div>
+        {post.workType && (
+          <span className="team-work-kind">{post.workType}</span>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
@@ -94,7 +108,9 @@ export default function PostCard({
           </DropdownMenuContent>
         </DropdownMenu>
       </header>
-      <div className="post-media">
+      <div
+        className={`post-media ${post.images.every((image) => image.startsWith("/work/")) ? "work-preview-media" : ""}`}
+      >
         <MotionCarousel
           images={post.images}
           alt={post.alt}
@@ -185,8 +201,7 @@ export default function PostCard({
           className="comment-form"
           onSubmit={(event) => {
             event.preventDefault();
-            if (comment.trim()) {
-              onComment(comment.trim());
+            if (comment.trim() && onComment(comment.trim())) {
               setComment("");
             }
           }}

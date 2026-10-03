@@ -49,3 +49,7 @@ next-env.d.ts
 /.codex/
 /outputs/
 /work/
+
+# Private activity journals never belong in the repository.
+/session/*
+!/session/README.md

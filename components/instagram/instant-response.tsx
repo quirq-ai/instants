@@ -41,20 +41,21 @@ export function InstantResponse({
       <div className="instant-meta">
         <span className="instant-kind">
           <Zap size={12} fill="currentColor" />
-          {instant.kind === "poll" ? "QUICK VOTE" : "HAPPENING NOW"}
+          {instant.kind === "poll" ? "TEAM DECISION" : "INPUT NEEDED"}
         </span>
         <span className="instant-deadline">
           <Clock3 size={12} />
-          {expired ? "Moment closed" : remaining}
+          {expired ? "Response window closed" : remaining}
         </span>
       </div>
       <h2>{instant.title}</h2>
       <div className="instant-options">
         {instant.options.map((option) => {
           const active = selected === option.id;
-          const percentage = Math.round(
-            ((option.count + (active ? 1 : 0)) / total) * 100,
-          );
+          const percentage =
+            total > 0
+              ? Math.round(((option.count + (active ? 1 : 0)) / total) * 100)
+              : 0;
           return (
             <button
               key={option.id}
@@ -83,13 +84,15 @@ export function InstantResponse({
         {selected ? (
           <>
             <Check size={12} />{" "}
-            {instant.kind === "poll" ? "Your vote is in" : "Response sent"}
+            {instant.kind === "poll"
+              ? "Your vote is recorded"
+              : "Response recorded"}
             <span>&middot; {total} responses</span>
           </>
         ) : (
           <>
             <span className="response-dot" />
-            {total} people have responded<span>&middot; make it a moment</span>
+            {total} teammates responded<span>&middot; add your input</span>
           </>
         )}
       </p>

@@ -12,7 +12,7 @@ import {
   Moon,
   Sun,
   ChevronRight,
-  Plus,
+  Download,
   Bookmark,
   Check,
 } from "lucide-react";
@@ -37,16 +37,16 @@ import {
 } from "./shared";
 import PostCard from "./post-card";
 import { ExploreView, ProfileView, MessagesView, ReelsView } from "./views";
-import {
-  SidePanel,
-  StoryViewer,
-  PostDialog,
-  CreateDialog,
-  ShareDialog,
-} from "./overlays";
+import { SidePanel, PostDialog, CreateDialog, ShareDialog } from "./overlays";
 import { useThemeTool } from "./use-theme-tool";
-import { scrollToTop, prefersReducedMotion } from "@/lib/motion";
+import { scrollToTop } from "@/lib/motion";
 import { useClientReady } from "@/hooks/use-client-ready";
+import { useSession } from "@/hooks/use-session";
+import {
+  AttentionQueue,
+  QueueReplyDialog,
+} from "@/components/collaboration/attention-queue";
+import { getCompany } from "@/lib/data";
 
 const nav = [
   { name: "Home", icon: HomeIcon },
@@ -58,18 +58,35 @@ const nav = [
   { name: "Create", icon: SquarePlus },
 ];
 export default function InstantsApp() {
-  const ready = useClientReady();
+  const hydrated = useClientReady();
+  const activity = useSession();
+  const ready = hydrated && activity.ready;
+  const {
+    liked,
+    saved,
+    following,
+    allPosts,
+    comments,
+    threads,
+    responses,
+    deadlines,
+    attention,
+  } = activity.state;
+  const record = activity.record;
+  useEffect(() => {
+    if (activity.error)
+      toast.error(activity.error, { id: "session-error", duration: 8000 });
+    else toast.dismiss("session-error");
+  }, [activity.error]);
   const [theme, setTheme] = useState<Theme>(brand.defaultTheme as Theme);
   const [view, setView] = useState("Home");
-  const [feed, setFeed] = useState("for-you");
-  const [liked, setLiked] = useState<string[]>([]);
-  const [saved, setSaved] = useState<string[]>([]);
-  const [following, setFollowing] = useState<string[]>(
-    mock.users.filter((user) => user.following).map((user) => user.id),
-  );
-  const [seen, setSeen] = useState<string[]>([]);
+  const [feed, setFeed] = useState("all");
   const [panel, setPanel] = useState<string | null>(null);
-  const [story, setStory] = useState<number | null>(null);
+  const [queueId, setQueueId] = useState<string | null>(null);
+  const queueItem = attention.find((item) => item.id === queueId);
+  const teamQueue = attention.filter(
+    (item) => feed === "all" || item.companyId === feed,
+  );
   const [activePost, setActivePost] = useState<Post | null>(null);
   const [sharePost, setSharePost] = useState<Post | null>(null);
   const [creating, setCreating] = useState(false);
@@ -96,37 +113,25 @@ export default function InstantsApp() {
     if (name === "Profile") setProfileId(account);
     setView(name);
   }
-  const [allPosts, setAllPosts] = useState<Post[]>(mock.posts);
-  const [comments, setComments] = useState<
-    Record<string, { userId: string; text: string }[]>
-  >({});
-  const [threads, setThreads] = useState(mock.messages);
-  const [responses, setResponses] = useState<Record<string, string>>({});
-  const [deadlines, setDeadlines] = useState<Record<string, number>>({});
-  useEffect(() => {
-    const now = Date.now();
-    setDeadlines(
-      Object.fromEntries(
-        mock.posts.map((post) => [
-          post.id,
-          now + post.instant.expiresInMinutes * 60_000,
-        ]),
-      ),
-    );
-  }, []);
   function respond(post: Post, option: string) {
     if (
       !post.instant?.options.some((item) => item.id === option) ||
       (deadlines[post.id] && deadlines[post.id] <= Date.now())
     )
       return;
-    setResponses((current) => ({ ...current, [post.id]: option }));
+    record({
+      type: "post.respond",
+      data: { postId: post.id, optionId: option },
+    });
   }
+  const openedDeepLink = useRef(false);
   useEffect(() => {
+    if (!ready || openedDeepLink.current) return;
+    openedDeepLink.current = true;
     const id = new URLSearchParams(window.location.search).get("post");
-    const post = mock.posts.find((item) => item.id === id);
+    const post = allPosts.find((item) => item.id === id);
     if (post) setActivePost(post);
-  }, []);
+  }, [ready, allPosts]);
   useEffect(() => {
     setTheme(
       document.documentElement.dataset.theme === "dark" ? "dark" : "light",
@@ -143,8 +148,16 @@ export default function InstantsApp() {
     applyTheme(theme === "light" ? "dark" : "light");
   }
   useThemeTool(applyTheme);
-  const toggle = (list: string[], id: string) =>
-    list.includes(id) ? list.filter((item) => item !== id) : [...list, id];
+  const follow = (userId: string) =>
+    record({
+      type: "person.follow",
+      data: { userId, following: !following.includes(userId) },
+    });
+  const like = (postId: string) =>
+    record({
+      type: "post.like",
+      data: { postId, liked: !liked.includes(postId) },
+    });
   function navigate(name: string) {
     if (name === "Search" || name === "Notifications") {
       setPanel(name);
@@ -160,28 +173,13 @@ export default function InstantsApp() {
     showView("Profile", id);
   }
   function addComment(postId: string, text: string) {
-    setComments((current) => ({
-      ...current,
-      [postId]: [...(current[postId] || []), { userId: "you", text }],
-    }));
-  }
-  function openStory(index: number) {
-    setStory(index);
-    setSeen((current) =>
-      current.includes(mock.users[index].id)
-        ? current
-        : [...current, mock.users[index].id],
-    );
+    return record({ type: "post.comment", data: { postId, text } });
   }
   const dockView = panel === "Search" || view === "Explore" ? "Search" : view;
   const posts = allPosts
     .filter((post) => view !== "Saved" || saved.includes(post.id))
     .filter(
-      (post) =>
-        view === "Saved" ||
-        feed !== "following" ||
-        following.includes(post.userId) ||
-        post.userId === "you",
+      (post) => view === "Saved" || feed === "all" || post.companyId === feed,
     );
   return (
     <SidebarProvider
@@ -189,6 +187,8 @@ export default function InstantsApp() {
       inert={!ready}
       aria-busy={!ready}
       data-app-ready={ready}
+      data-session-mode={activity.mode}
+      data-session-status={activity.status}
     >
       <Sidebar collapsible="none" className="ig-sidebar">
         <button
@@ -218,9 +218,12 @@ export default function InstantsApp() {
                       : "none"
                   }
                 />
-                {item.name === "Messages" && (
-                  <span className="notification-badge">2</span>
-                )}
+                {item.name === "Messages" &&
+                  threads.some((thread) => thread.unread) && (
+                    <span className="notification-badge">
+                      {threads.filter((thread) => thread.unread).length}
+                    </span>
+                  )}
               </span>
               <span className="nav-label">{item.name}</span>
             </button>
@@ -263,6 +266,9 @@ export default function InstantsApp() {
             >
               <DropdownMenuItem onClick={() => navigate("Saved")}>
                 <Bookmark size={18} /> Saved
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={activity.exportSession}>
+                <Download size={18} /> Export session
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <a href="/motion">
@@ -323,6 +329,13 @@ export default function InstantsApp() {
         key={viewKey}
         className={`ig-main ${view === "Messages" ? "messages-main" : ""}`}
       >
+        {activity.error && (
+          <div className="session-feedback" role="alert">
+            <span>{activity.error}</span>
+            <button onClick={activity.retry}>Retry</button>
+            <button onClick={activity.exportSession}>Export session</button>
+          </div>
+        )}
         {view === "Explore" && (
           <ExploreView
             onOpen={setActivePost}
@@ -336,7 +349,7 @@ export default function InstantsApp() {
             posts={allPosts}
             saved={saved}
             following={following}
-            onFollow={() => setFollowing(toggle(following, profileId))}
+            onFollow={() => follow(profileId)}
             onOpen={setActivePost}
             onSaved={() => navigate("Home")}
             onEdit={switchTheme}
@@ -346,7 +359,13 @@ export default function InstantsApp() {
           <MessagesView
             onProfile={openProfile}
             threads={threads}
-            setThreads={setThreads}
+            onSend={(userId, text) =>
+              record({ type: "message.send", data: { userId, text } })
+            }
+            onRead={(userId) => {
+              if (threads.find((thread) => thread.userId === userId)?.unread)
+                record({ type: "message.read", data: { userId } });
+            }}
           />
         )}
         {view === "Reels" && <ReelsView onOpen={setActivePost} />}
@@ -354,66 +373,37 @@ export default function InstantsApp() {
           <div className="home-layout">
             <section className="feed-column" aria-label="Feed">
               <div className="feed-tabs-row">
-                <Tabs value={feed} onValueChange={setFeed}>
-                  <TabsList variant="line" className="feed-tabs">
-                    <TabsTrigger value="for-you">
-                      {view === "Saved" ? "Saved posts" : "Live now"}
+                <Tabs
+                  value={view === "Saved" ? "all" : feed}
+                  onValueChange={setFeed}
+                >
+                  <TabsList variant="line" className="feed-tabs team-feed-tabs">
+                    <TabsTrigger value="all">
+                      {view === "Saved" ? "Saved work" : "All teams"}
                     </TabsTrigger>
-                    {view !== "Saved" && (
-                      <TabsTrigger value="following">Following</TabsTrigger>
-                    )}
+                    {view !== "Saved" &&
+                      mock.companies.map((company) => (
+                        <TabsTrigger key={company.id} value={company.id}>
+                          {company.handle}
+                        </TabsTrigger>
+                      ))}
                   </TabsList>
                 </Tabs>
                 <span className="feed-wordmark">{brand.tagline}</span>
                 {view !== "Saved" && (
                   <span className="live-feed-status">
                     <i />
-                    {posts.length} moments
+                    {teamQueue.filter((item) => !item.resolved).length} awaiting
+                    you
                   </span>
                 )}
               </div>
               {view !== "Saved" && (
-                <div className="stories" aria-label="Stories">
-                  <button
-                    className="story your-story"
-                    onClick={() => navigate("Create")}
-                  >
-                    <span className="own-story-wrap">
-                      <Avatar user={mock.currentUser} size={64} />
-                      <span className="add-story">
-                        <Plus size={13} strokeWidth={3} />
-                      </span>
-                    </span>
-                    <span>Your story</span>
-                  </button>
-                  {mock.users.slice(0, 6).map((user, index) => (
-                    <button
-                      className="story"
-                      key={user.id}
-                      onClick={() => openStory(index)}
-                    >
-                      <Avatar
-                        user={user}
-                        size={66}
-                        ring
-                        seen={seen.includes(user.id)}
-                      />
-                      <span>{user.username}</span>
-                    </button>
-                  ))}
-                  <button
-                    className="stories-next"
-                    aria-label="More stories"
-                    onClick={(event) =>
-                      event.currentTarget.parentElement?.scrollBy({
-                        left: 250,
-                        behavior: prefersReducedMotion() ? "instant" : "smooth",
-                      })
-                    }
-                  >
-                    <ChevronRight size={17} />
-                  </button>
-                </div>
+                <AttentionQueue
+                  items={teamQueue}
+                  onOpen={setQueueId}
+                  onCreate={() => setCreating(true)}
+                />
               )}
               <div className="posts">
                 {posts.map((post) => (
@@ -426,21 +416,30 @@ export default function InstantsApp() {
                     }}
                     liked={liked.includes(post.id)}
                     saved={saved.includes(post.id)}
-                    onLike={() => setLiked(toggle(liked, post.id))}
+                    onLike={() => like(post.id)}
                     onSave={() => {
-                      setSaved(toggle(saved, post.id));
-                      toast(
-                        saved.includes(post.id)
-                          ? "Removed from saved"
-                          : "Saved to your collection",
-                      );
+                      if (
+                        record({
+                          type: "post.save",
+                          data: {
+                            postId: post.id,
+                            saved: !saved.includes(post.id),
+                          },
+                        })
+                      )
+                        toast(
+                          saved.includes(post.id)
+                            ? "Removed from saved"
+                            : "Saved to your collection",
+                        );
                     }}
                     onComment={(text) => {
                       if (text) {
-                        addComment(post.id, text);
+                        if (!addComment(post.id, text)) return false;
                         toast("Comment added");
                       }
                       setActivePost(post);
+                      return true;
                     }}
                     onShare={() => setSharePost(post)}
                     onProfile={openProfile}
@@ -452,8 +451,8 @@ export default function InstantsApp() {
                 {!posts.length && (
                   <div className="empty-state">
                     <Bookmark size={44} />
-                    <h2>Save the things you love</h2>
-                    <p>Posts you save will appear here.</p>
+                    <h2>Keep work close</h2>
+                    <p>Save a post to return to its discussion.</p>
                     <button
                       className="primary-button"
                       onClick={() => navigate("Home")}
@@ -467,14 +466,24 @@ export default function InstantsApp() {
                     <span>
                       <Check size={28} />
                     </span>
-                    <h3>You&apos;re all caught up</h3>
-                    <p>More moments are just around the corner.</p>
+                    <h3>That&apos;s the latest from your teams</h3>
+                    <p>Good work moves forward with a reply.</p>
                     <button className="text-action" onClick={scrollToTop}>
                       Back to top
                     </button>
                     <a className="motion-lab-link" href="/motion">
                       Explore the motion lab <ChevronRight size={14} />
                     </a>
+                    <p className="session-status" role="status">
+                      {activity.label}
+                    </p>
+                    <button
+                      className="session-export"
+                      onClick={activity.exportSession}
+                    >
+                      <Download size={13} />
+                      Export session
+                    </button>
                   </div>
                 )}
               </div>
@@ -500,11 +509,37 @@ export default function InstantsApp() {
                   Switch
                 </button>
               </div>
+              <div className="team-summary">
+                {mock.companies.map((company) => (
+                  <button
+                    key={company.id}
+                    onClick={() => {
+                      setFeed(company.id);
+                      showView("Home", "you", true);
+                    }}
+                  >
+                    <span className="team-monogram">{company.initials}</span>
+                    <span>
+                      <strong>{company.handle}</strong>
+                      <small>
+                        {
+                          attention.filter(
+                            (item) =>
+                              item.companyId === company.id && !item.resolved,
+                          ).length
+                        }{" "}
+                        requests waiting
+                      </small>
+                    </span>
+                    <ChevronRight size={14} />
+                  </button>
+                ))}
+              </div>
               <div className="suggestions-heading">
-                <h2>Suggested for you</h2>
+                <h2>Your people</h2>
                 <button onClick={() => navigate("Explore")}>See All</button>
               </div>
-              {mock.users.slice(5).map((user, i) => (
+              {mock.users.slice(0, 5).map((user) => (
                 <div className="account-row" key={user.id}>
                   <button onClick={() => openProfile(user.id)}>
                     <Avatar user={user} size={44} />
@@ -518,16 +553,12 @@ export default function InstantsApp() {
                       {user.verified && <Verified />}
                     </strong>
                     <span>
-                      {i === 0
-                        ? "Followed by ellawilliams + 3 more"
-                        : i === 2
-                          ? "Followed by james.chen"
-                          : "Suggested for you"}
+                      {user.role} · {getCompany(user.companyId)?.handle}
                     </span>
                   </button>
                   <button
                     className={`text-action ${following.includes(user.id) ? "is-following" : ""}`}
-                    onClick={() => setFollowing(toggle(following, user.id))}
+                    onClick={() => follow(user.id)}
                   >
                     {following.includes(user.id) ? "Following" : "Follow"}
                   </button>
@@ -535,6 +566,17 @@ export default function InstantsApp() {
               ))}
               <footer className="side-footer">
                 <p>{brand.tagline}</p>
+                <p className="session-status">
+                  <i />
+                  {activity.label}
+                </p>
+                <button
+                  className="session-export"
+                  onClick={activity.exportSession}
+                >
+                  <Download size={13} />
+                  Export session
+                </button>
                 <PoweredBy />
                 <p className="footer-copyright">
                   &copy; {new Date().getFullYear()} {brand.name}
@@ -590,52 +632,54 @@ export default function InstantsApp() {
         panel={panel}
         onClose={() => setPanel(null)}
         onProfile={openProfile}
-        following={following}
-        onFollow={(id) => setFollowing(toggle(following, id))}
+        attention={attention}
+        onOpenQueue={(id) => {
+          setPanel(null);
+          setQueueId(id);
+        }}
       />
-      <StoryViewer
-        index={story}
-        onChange={openStory}
-        onClose={() => setStory(null)}
-        onReply={(userId, text) =>
-          setThreads((current) => {
-            const index = current.findIndex(
-              (thread) => thread.userId === userId,
-            );
-            if (index < 0)
-              return [
-                {
-                  userId,
-                  preview: `You: ${text}`,
-                  time: "now",
-                  unread: false,
-                  messages: [{ mine: true, text }],
-                },
-                ...current,
-              ];
-            return current.map((thread, i) =>
-              i === index
-                ? {
-                    ...thread,
-                    preview: `You: ${text}`,
-                    time: "now",
-                    messages: [...thread.messages, { mine: true, text }],
-                  }
-                : thread,
-            );
-          })
-        }
-      />
+      {queueItem && (
+        <QueueReplyDialog
+          key={queueItem.id}
+          item={queueItem}
+          items={attention}
+          posts={allPosts}
+          onClose={() => setQueueId(null)}
+          onOpen={setQueueId}
+          onReply={(item, text) =>
+            record({
+              type: "queue.reply",
+              data: {
+                itemId: item.id,
+                userId: item.userId,
+                kind: item.kind,
+                ...(item.postId ? { postId: item.postId } : {}),
+                text,
+              },
+            })
+          }
+          onResolve={(item, resolved) =>
+            record({
+              type: "queue.resolve",
+              data: { itemId: item.id, resolved },
+            })
+          }
+          onOpenPost={(id) => {
+            setQueueId(null);
+            setActivePost(allPosts.find((post) => post.id === id) || null);
+          }}
+        />
+      )}
       <PostDialog
         post={activePost}
         onClose={() => setActivePost(null)}
         comments={activePost ? comments[activePost.id] || [] : []}
         onAdd={(text) => {
-          if (activePost) addComment(activePost.id, text);
+          return activePost ? addComment(activePost.id, text) : false;
         }}
         liked={!!activePost && liked.includes(activePost.id)}
         onLike={() => {
-          if (activePost) setLiked(toggle(liked, activePost.id));
+          if (activePost) like(activePost.id);
         }}
         response={activePost ? responses[activePost.id] : undefined}
         expiresAt={activePost ? deadlines[activePost.id] : undefined}
@@ -646,31 +690,14 @@ export default function InstantsApp() {
       <ShareDialog
         post={sharePost}
         onClose={() => setSharePost(null)}
-        onSend={(ids, post) => {
-          setThreads((current) => {
-            const next = [...current];
-            for (const id of ids) {
-              const text = `Shared a post: ${post.caption}`;
-              const index = next.findIndex((thread) => thread.userId === id);
-              if (index >= 0)
-                next[index] = {
-                  ...next[index],
-                  preview: "You shared a post",
-                  time: "now",
-                  messages: [...next[index].messages, { mine: true, text }],
-                };
-              else
-                next.unshift({
-                  userId: id,
-                  preview: "You shared a post",
-                  time: "now",
-                  unread: false,
-                  messages: [{ mine: true, text }],
-                });
-            }
-            return next;
-          });
-        }}
+        onSend={(ids, post) =>
+          activity.recordBatch(
+            ids.map((userId) => ({
+              type: "message.send",
+              data: { userId, text: `Shared work: ${post.caption}` },
+            })),
+          )
+        }
       />
       <CreateDialog
         open={creating}
@@ -679,10 +706,13 @@ export default function InstantsApp() {
           const newPost: Post = {
             id: `local-${Date.now()}`,
             userId: "you",
-            location: "Just shared",
+            companyId: feed === "all" ? mock.currentUser.companyId : feed,
+            requesterId: "you",
+            workType: "Feedback",
+            location: "Ready for feedback",
             time: "now",
             images: [image],
-            alt: caption || "Your new photo",
+            alt: caption || "Your work preview",
             caption,
             tags: "",
             likes: 0,
@@ -692,22 +722,19 @@ export default function InstantsApp() {
               kind: "invite",
               title:
                 caption.split("\n")[0].slice(0, 80) ||
-                "Who is in for this moment?",
+                "Could you take a look at this?",
               expiresInMinutes: 30,
               options: [
-                { id: "in", label: "I'm in", count: 0 },
-                { id: "more", label: "Tell me more", count: 0 },
+                { id: "reviewed", label: "Reviewed", count: 0 },
+                { id: "discuss", label: "Let's discuss", count: 0 },
               ],
             },
           };
-          setDeadlines((current) => ({
-            ...current,
-            [newPost.id]: Date.now() + 30 * 60_000,
-          }));
-          setAllPosts((current) => [newPost, ...current]);
-          setFeed("for-you");
+          if (!record({ type: "post.create", data: { post: newPost } }))
+            return false;
           showView("Home", "you", true);
-          toast("Your moment has been shared to the demo feed");
+          toast("Your work is ready for feedback in this session");
+          return true;
         }}
       />
       <Toaster

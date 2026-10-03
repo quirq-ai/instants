@@ -16,9 +16,7 @@ import {
   Info,
   Smile,
   ArrowLeft,
-  Play,
-  Music2,
-  VolumeX,
+  Layers3,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -27,7 +25,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { brand } from "@/lib/brand";
+import { getCompany, type Thread } from "@/lib/data";
 import { useSwipeGesture, prefersReducedMotion } from "@/lib/motion";
 import { Avatar, Photo, Verified, getUser, mock, Post } from "./shared";
 
@@ -38,11 +36,11 @@ export function ExploreView({
   onOpen: (post: Post) => void;
   onSearch: () => void;
 }) {
-  const [category, setCategory] = useState("For you");
+  const [category, setCategory] = useState("All work");
   const [query, setQuery] = useState("");
   const items = mock.explore.filter(
     (item) =>
-      (category === "For you" || item.category === category) &&
+      (category === "All work" || item.category === category) &&
       `${item.alt} ${item.category}`
         .toLowerCase()
         .includes(query.toLowerCase()),
@@ -52,13 +50,13 @@ export function ExploreView({
       <div className="page-heading">
         <div>
           <h1>Explore</h1>
-          <p>Find your next spontaneous moment.</p>
+          <p>See what your teams are building, testing and sharing.</p>
         </div>
         <label className="search-field explore-search">
           <Search size={18} />
           <input
-            placeholder="Search inspiration"
-            aria-label="Search inspiration"
+            placeholder="Search shared work"
+            aria-label="Search shared work"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
@@ -66,46 +64,44 @@ export function ExploreView({
       </div>
       <button className="explore-people-search search-field" onClick={onSearch}>
         <Search size={18} />
-        Search people and moments
+        Search your teammates
       </button>
       <Tabs value={category} onValueChange={setCategory}>
         <TabsList className="category-tabs">
-          {["For you", "Travel", "Architecture", "Nature", "Style", "Food"].map(
-            (item) => (
-              <TabsTrigger key={item} value={item}>
-                {item}
-              </TabsTrigger>
-            ),
-          )}
+          {[
+            "All work",
+            ...new Set(mock.explore.map((item) => item.category)),
+          ].map((item) => (
+            <TabsTrigger key={item} value={item}>
+              {item}
+            </TabsTrigger>
+          ))}
         </TabsList>
       </Tabs>
       <div className="explore-grid">
         {items.map((item, index) => (
           <button
-            className={`explore-tile ${category === "For you" && index === 2 ? "tall" : ""}`}
-            key={item.image}
+            className={`explore-tile ${category === "All work" && index === 2 ? "tall" : ""}`}
+            key={`${item.image}-${index}`}
             aria-label={`Open ${item.alt}`}
             onClick={() =>
-              onOpen({
-                ...mock.posts[index % mock.posts.length],
-                id: `explore-${mock.explore.indexOf(item)}`,
-                images: [item.image],
-                alt: item.alt,
-                caption: item.alt,
-                location: item.category,
-                instant: undefined,
-              })
+              onOpen(
+                mock.posts.find((post) => post.images.includes(item.image)) ??
+                  mock.posts[0],
+              )
             }
           >
             <Photo src={item.image} alt={item.alt} />
-            {index === 2 && (
-              <Play className="tile-type" fill="white" size={22} />
+            {(mock.posts.find((post) => post.images.includes(item.image))
+              ?.images.length ?? 0) > 1 && (
+              <Layers3 className="tile-type" size={22} />
             )}
             <span className="tile-overlay">
               <Heart fill="white" size={22} />
               {item.likes}
               <MessageCircle fill="white" size={22} />
-              48
+              {mock.posts.find((post) => post.images.includes(item.image))
+                ?.commentCount ?? 0}
             </span>
           </button>
         ))}
@@ -149,29 +145,21 @@ export function ProfileView({
   const [draft, setDraft] = useState(profile);
   const user = getUser(userId);
   const own = userId === "you";
+  const company = getCompany(user.companyId);
+  const teammates =
+    mock.users.filter(
+      (person) => person.companyId === user.companyId && person.id !== user.id,
+    ).length +
+    (!own && mock.currentUser.companyIds.includes(user.companyId) ? 1 : 0);
   const selected =
     tab === "saved"
       ? posts.filter((post) => saved.includes(post.id))
       : tab === "tagged"
-        ? []
+        ? posts.filter((post) => post.caption.includes(`@${user.username}`))
         : own
           ? posts.filter((post) => post.userId === "you")
           : posts.filter((post) => post.userId === userId);
-  const gallery =
-    own && tab === "posts"
-      ? [
-          ...selected,
-          ...mock.explore.slice(0, 6).map((item, index) => ({
-            ...mock.posts[index % 4],
-            instant: undefined,
-            id: `profile-${index}`,
-            userId: "you",
-            images: [item.image],
-            alt: item.alt,
-            caption: item.alt,
-          })),
-        ]
-      : selected;
+  const gallery = selected;
   return (
     <section className="profile-page">
       <header className="profile-header">
@@ -217,37 +205,35 @@ export function ProfileView({
               <strong>{gallery.length}</strong> posts
             </span>
             <span>
-              <strong>{own ? mock.currentUser.followers : "12.8K"}</strong>{" "}
-              followers
+              <strong>{teammates}</strong> teammates
             </span>
             <span>
-              <strong>{own ? mock.currentUser.following : "482"}</strong>{" "}
-              following
+              <strong>{own ? mock.currentUser.companyIds.length : 1}</strong>{" "}
+              {own ? "teams" : "team"}
             </span>
           </div>
           <strong>{own ? profile.name : user.name}</strong>
           <p className="profile-bio">
             {own
               ? profile.bio
-              : "Finding beauty in the everyday.\nPhotos, places, and everything in between. ✨"}
+              : `${user.role} at ${company?.name ?? "your team"}.\nSharing work, asking good questions and moving things forward.`}
           </p>
           <span className="profile-link">
-            {own ? "London, United Kingdom" : "Personal blog"}
+            {user.role} · @{company?.handle}
           </span>
         </div>
       </header>
       <div className="highlights">
-        {["Little moments", "On the road", "At home", "Favorites"].map(
+        {["Design reviews", "Testing", "Mobile flows", "Prototypes"].map(
           (label, index) => (
             <button
               key={label}
               onClick={() =>
-                onOpen({
-                  ...mock.posts[index],
-                  id: `highlight-${index}`,
-                  instant: undefined,
-                  images: [mock.explore[index].image],
-                })
+                onOpen(
+                  mock.posts.find((post) =>
+                    post.images.includes(mock.explore[index].image),
+                  ) ?? mock.posts[0],
+                )
               }
             >
               <span>
@@ -261,7 +247,7 @@ export function ProfileView({
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList variant="line" className="profile-tabs">
           <TabsTrigger value="posts">
-            <Grid3X3 size={13} /> POSTS
+            <Grid3X3 size={13} /> WORK
           </TabsTrigger>
           {own && (
             <TabsTrigger value="saved">
@@ -291,11 +277,19 @@ export function ProfileView({
       {!gallery.length && (
         <div className="empty-state">
           {tab === "saved" ? <Bookmark size={42} /> : <Contact size={42} />}
-          <h2>{tab === "saved" ? "Save your inspiration" : "Photos of you"}</h2>
+          <h2>
+            {tab === "saved"
+              ? "Keep useful work close"
+              : tab === "tagged"
+                ? "Work that mentions you"
+                : "No shared work yet"}
+          </h2>
           <p>
             {tab === "saved"
               ? "The posts you save will be collected here."
-              : "Photos you're tagged in will appear here."}
+              : tab === "tagged"
+                ? "Work that mentions you will appear here."
+                : "Share a preview and ask your team for feedback."}
           </p>
           {tab === "saved" && (
             <button className="text-action" onClick={onSaved}>
@@ -308,7 +302,7 @@ export function ProfileView({
         <DialogContent className="edit-profile-dialog">
           <DialogTitle>Edit profile</DialogTitle>
           <DialogDescription>
-            Make this little corner of the world yours.
+            Help your teammates know what you work on.
           </DialogDescription>
           <form
             onSubmit={(event) => {
@@ -354,11 +348,13 @@ export function ProfileView({
 export function MessagesView({
   onProfile,
   threads,
-  setThreads,
+  onSend,
+  onRead,
 }: {
   onProfile: (id: string) => void;
-  threads: typeof mock.messages;
-  setThreads: React.Dispatch<React.SetStateAction<typeof mock.messages>>;
+  threads: Thread[];
+  onSend: (userId: string, text: string) => boolean;
+  onRead: (userId: string) => void;
 }) {
   const [active, setActive] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -375,19 +371,7 @@ export function MessagesView({
   }, [threads, active]);
   function send() {
     if (!text.trim() || !active) return;
-    setThreads((current) =>
-      current.map((item) =>
-        item.userId === active
-          ? {
-              ...item,
-              preview: `You: ${text}`,
-              time: "now",
-              messages: [...item.messages, { mine: true, text: text.trim() }],
-            }
-          : item,
-      ),
-    );
-    setText("");
+    if (onSend(active, text.trim())) setText("");
   }
   return (
     <section className={`messages-page ${active ? "has-conversation" : ""}`}>
@@ -419,7 +403,7 @@ export function MessagesView({
         </label>
         <div className="inbox-label">
           <strong>Messages</strong>
-          <span>Requests</span>
+          <span>{threads.filter((item) => item.unread).length} unread</span>
         </div>
         {notice && <p className="inline-notice">{notice}</p>}
         {threads
@@ -436,11 +420,7 @@ export function MessagesView({
                 className={`thread-row ${active === item.userId ? "selected" : ""}`}
                 onClick={() => {
                   setActive(item.userId);
-                  setThreads(
-                    threads.map((t) =>
-                      t.userId === item.userId ? { ...t, unread: false } : t,
-                    ),
-                  );
+                  onRead(item.userId);
                   setNotice("");
                 }}
               >
@@ -475,14 +455,16 @@ export function MessagesView({
                 onClick={() => onProfile(person.id)}
               >
                 <strong>{person.name}</strong>
-                <span>Active now</span>
+                <span>
+                  {person.role} · {getCompany(person.companyId)?.name}
+                </span>
               </button>
               <button
                 className="icon-button"
                 aria-label="Audio call"
                 onClick={() =>
                   setNotice(
-                    "Calls will be available when messaging is connected.",
+                    "Calls are not connected in this collaboration preview.",
                   )
                 }
               >
@@ -493,7 +475,7 @@ export function MessagesView({
                 aria-label="Video call"
                 onClick={() =>
                   setNotice(
-                    "Video calls will be available when messaging is connected.",
+                    "Video calls are not connected in this collaboration preview.",
                   )
                 }
               >
@@ -513,7 +495,7 @@ export function MessagesView({
                 <Avatar user={person} size={90} />
                 <h2>{person.name}</h2>
                 <p>
-                  {person.username} · {brand.name}
+                  {person.username} · {getCompany(person.companyId)?.name}
                 </p>
                 <button
                   className="secondary-button"
@@ -522,7 +504,7 @@ export function MessagesView({
                   View profile
                 </button>
               </div>
-              <p className="message-date">Today, 10:24 AM</p>
+              <p className="message-date">Team conversation</p>
               {thread.messages.map((message, index) => (
                 <div
                   key={index}
@@ -544,12 +526,15 @@ export function MessagesView({
                 type="button"
                 className="icon-button"
                 aria-label="Insert smile emoji"
-                onClick={() => setText(text + " 😊")}
+                onClick={() =>
+                  setText((current) => (current + " 🙂").slice(0, 4000))
+                }
               >
                 <Smile />
               </button>
               <input
-                placeholder="Message…"
+                placeholder="Reply or share an update…"
+                maxLength={4000}
                 aria-label="Message"
                 value={text}
                 onChange={(event) => setText(event.target.value)}
@@ -563,7 +548,7 @@ export function MessagesView({
               </button>
             </form>
             <p className="demo-message-note">
-              Demo conversation · messages stay in this session
+              Replies are saved in this session.
             </p>
           </>
         ) : (
@@ -572,10 +557,17 @@ export function MessagesView({
               <Send size={43} />
             </div>
             <h2>Your messages</h2>
-            <p>Send a little hello. Share a little moment.</p>
+            <p>
+              Reply to a teammate, ask a question or share work in progress.
+            </p>
             <button
               className="primary-button"
-              onClick={() => setActive(threads[0].userId)}
+              disabled={!threads.length}
+              onClick={() => {
+                if (!threads[0]) return;
+                setActive(threads[0].userId);
+                onRead(threads[0].userId);
+              }}
             >
               Send message
             </button>
@@ -590,7 +582,10 @@ export function ReelsView({ onOpen }: { onOpen: (post: Post) => void }) {
   const [index, setIndex] = useState(0);
   const [liked, setLiked] = useState(false);
   const item = mock.explore[index];
-  const user = getUser(mock.posts[index % 4].userId);
+  const sourcePost =
+    mock.posts.find((post) => post.images.includes(item.image)) ??
+    mock.posts[0];
+  const user = getUser(sourcePost.userId);
   function advance(delta: number) {
     setIndex(
       (current) =>
@@ -607,9 +602,8 @@ export function ReelsView({ onOpen }: { onOpen: (post: Post) => void }) {
       <div className="reel-player" {...gesture}>
         <Photo key={item.image} src={item.image} alt={item.alt} />
         <div className="reel-top">
-          <strong>Reels</strong>
-          <span>Photo preview</span>
-          <VolumeX size={20} />
+          <strong>Work previews</strong>
+          <span>Prototype preview</span>
         </div>
         <div className="reel-gradient" />
         <div className="reel-copy">
@@ -618,16 +612,16 @@ export function ReelsView({ onOpen }: { onOpen: (post: Post) => void }) {
             <strong>{user.username}</strong>
             <Verified />
           </div>
-          <p>{item.alt}. A moment worth keeping. ✨</p>
+          <p>{item.alt}. Leave a thought to help the team move forward.</p>
           <span>
-            <Music2 size={14} /> Original audio · {user.username}
+            {item.category} · @{getCompany(sourcePost.companyId)?.handle}
           </span>
         </div>
       </div>
       <div className="reel-actions">
         <button
           className={`icon-button ${liked ? "liked" : ""}`}
-          aria-label="Like reel"
+          aria-label="Like work preview"
           aria-pressed={liked}
           onClick={() => setLiked(!liked)}
         >
@@ -636,22 +630,15 @@ export function ReelsView({ onOpen }: { onOpen: (post: Post) => void }) {
         <small>{item.likes}</small>
         <button
           className="icon-button"
-          aria-label="Reel comments"
-          onClick={() =>
-            onOpen({
-              ...mock.posts[index % 4],
-              id: `reel-${index}`,
-              instant: undefined,
-              images: [item.image],
-            })
-          }
+          aria-label="Review this work"
+          onClick={() => onOpen(sourcePost)}
         >
           <MessageCircle />
         </button>
-        <small>48</small>
+        <small>{sourcePost.commentCount}</small>
         <button
           className="icon-button"
-          aria-label="Next reel"
+          aria-label="Next work preview"
           onClick={() => advance(1)}
         >
           <ChevronDown />
