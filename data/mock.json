@@ -1,0 +1,378 @@
+{
+  "currentUser": {
+    "id": "you",
+    "username": "alex.morgan",
+    "name": "Alex Morgan",
+    "avatar": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=160&h=160&fit=crop&crop=faces",
+    "bio": "Less scrolling. More showing up.\nHere for the moments that matter.",
+    "followers": "2,486",
+    "following": 618
+  },
+  "users": [
+    {
+      "id": "ella",
+      "username": "ellawilliams",
+      "name": "Ella Williams",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160&h=160&fit=crop&crop=faces",
+      "verified": false,
+      "following": true
+    },
+    {
+      "id": "james",
+      "username": "james.chen",
+      "name": "James Chen",
+      "avatar": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=160&h=160&fit=crop&crop=faces",
+      "verified": true,
+      "following": true
+    },
+    {
+      "id": "sofia",
+      "username": "sofia.explores",
+      "name": "Sofia Rossi",
+      "avatar": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=160&h=160&fit=crop&crop=faces",
+      "verified": true,
+      "following": true
+    },
+    {
+      "id": "studio",
+      "username": "studio.north",
+      "name": "Studio North",
+      "avatar": "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=160&h=160&fit=crop",
+      "verified": false,
+      "following": true
+    },
+    {
+      "id": "noah",
+      "username": "noah.wanders",
+      "name": "Noah Anderson",
+      "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=160&h=160&fit=crop&crop=faces",
+      "verified": false,
+      "following": true
+    },
+    {
+      "id": "mia",
+      "username": "mia.creates",
+      "name": "Mia Taylor",
+      "avatar": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=160&h=160&fit=crop&crop=faces",
+      "verified": false,
+      "following": false
+    },
+    {
+      "id": "oliver",
+      "username": "oliverjames",
+      "name": "Oliver James",
+      "avatar": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=160&h=160&fit=crop&crop=faces",
+      "verified": false,
+      "following": false
+    },
+    {
+      "id": "lily",
+      "username": "lilyandlight",
+      "name": "Lily Parker",
+      "avatar": "https://images.unsplash.com/photo-1524250502761-1ac6f2e30d43?w=160&h=160&fit=crop&crop=faces",
+      "verified": false,
+      "following": false
+    },
+    {
+      "id": "daniel",
+      "username": "daniel.film",
+      "name": "Daniel Kim",
+      "avatar": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=160&h=160&fit=crop&crop=faces",
+      "verified": true,
+      "following": false
+    },
+    {
+      "id": "themodern",
+      "username": "themodernhouse",
+      "name": "The Modern House",
+      "avatar": "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=160&h=160&fit=crop",
+      "verified": true,
+      "following": false
+    }
+  ],
+  "posts": [
+    {
+      "id": "p1",
+      "userId": "sofia",
+      "location": "Cinque Terre, Italy",
+      "time": "2m",
+      "images": [
+        "https://images.unsplash.com/photo-1591014979485-08d0b2946bc3?w=1200&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1533105079780-92b9be482077?w=1200&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1516483638261-f4dbaf036963?w=1200&auto=format&fit=crop"
+      ],
+      "alt": "Colorful Italian coastal village overlooking the blue Mediterranean Sea",
+      "caption": "Spontaneous boat ride along the coast. We leave in 12 minutes. Come make a memory.",
+      "tags": "#rightnow #maketime",
+      "likes": 11,
+      "commentCount": 38,
+      "comments": [
+        {
+          "userId": "ella",
+          "text": "This is my kind of summer \ud83d\ude0d"
+        },
+        {
+          "userId": "james",
+          "text": "Every frame is a postcard."
+        }
+      ],
+      "instant": {
+        "kind": "invite",
+        "title": "One seat. One sunset. You in?",
+        "expiresInMinutes": 12,
+        "options": [
+          {
+            "id": "in",
+            "label": "I'm in",
+            "count": 8
+          },
+          {
+            "id": "next",
+            "label": "Next time",
+            "count": 3
+          }
+        ]
+      }
+    },
+    {
+      "id": "p2",
+      "userId": "studio",
+      "location": "Copenhagen, Denmark",
+      "time": "4m",
+      "images": [
+        "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=1200&auto=format&fit=crop"
+      ],
+      "alt": "Warm minimalist interior with natural wood and soft morning light",
+      "caption": "Friday's pop-up is taking shape. Help us pick the perfect corner before we start moving things.",
+      "tags": "#rightnow #maketime",
+      "likes": 50,
+      "commentCount": 24,
+      "comments": [
+        {
+          "userId": "mia",
+          "text": "The light in here \ud83e\udd0d"
+        }
+      ],
+      "instant": {
+        "kind": "poll",
+        "title": "Quick vote: where should we set up?",
+        "expiresInMinutes": 24,
+        "options": [
+          {
+            "id": "window",
+            "label": "By the window",
+            "count": 32
+          },
+          {
+            "id": "lounge",
+            "label": "The lounge",
+            "count": 18
+          }
+        ]
+      }
+    },
+    {
+      "id": "p3",
+      "userId": "james",
+      "location": "Dolomites, Italy",
+      "time": "6m",
+      "images": [
+        "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200&auto=format&fit=crop"
+      ],
+      "alt": "Dramatic mountain peak surrounded by clouds",
+      "caption": "Heading out for a golden-hour hike. Meet at the trailhead in 30 minutes. There is always room for one more.",
+      "tags": "#rightnow #maketime",
+      "likes": 18,
+      "commentCount": 92,
+      "comments": [
+        {
+          "userId": "noah",
+          "text": "Need to get back here."
+        }
+      ],
+      "instant": {
+        "kind": "invite",
+        "title": "Fresh air. No plans. Who is coming?",
+        "expiresInMinutes": 30,
+        "options": [
+          {
+            "id": "coming",
+            "label": "Count me in",
+            "count": 14
+          },
+          {
+            "id": "maybe",
+            "label": "Maybe next time",
+            "count": 4
+          }
+        ]
+      }
+    },
+    {
+      "id": "p4",
+      "userId": "ella",
+      "location": "Sunday kind of things",
+      "time": "1m",
+      "images": [
+        "https://images.unsplash.com/photo-1442512595331-e89e73853f31?w=1200&auto=format&fit=crop"
+      ],
+      "alt": "A freshly made cup of coffee in a cozy caf\u00e9",
+      "caption": "At our usual spot for the next half hour. Good coffee, an empty chair, and absolutely no agenda.",
+      "tags": "#rightnow #maketime",
+      "likes": 7,
+      "commentCount": 16,
+      "comments": [],
+      "instant": {
+        "kind": "invite",
+        "title": "Coffee in ten?",
+        "expiresInMinutes": 18,
+        "options": [
+          {
+            "id": "coffee",
+            "label": "On my way",
+            "count": 5
+          },
+          {
+            "id": "later",
+            "label": "Rain check",
+            "count": 2
+          }
+        ]
+      }
+    }
+  ],
+  "explore": [
+    {
+      "image": "https://images.unsplash.com/photo-1516483638261-f4dbaf036963?w=700&auto=format&fit=crop",
+      "alt": "Colorful houses along the Italian coast",
+      "category": "Travel",
+      "likes": "12.4K"
+    },
+    {
+      "image": "https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=700&auto=format&fit=crop",
+      "alt": "Still mountain lake reflecting a forest",
+      "category": "Nature",
+      "likes": "8,216"
+    },
+    {
+      "image": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=700&auto=format&fit=crop",
+      "alt": "Portrait in natural light",
+      "category": "Style",
+      "likes": "4,392"
+    },
+    {
+      "image": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=700&auto=format&fit=crop",
+      "alt": "Coffee and a quiet morning",
+      "category": "Food",
+      "likes": "2,486"
+    },
+    {
+      "image": "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=700&auto=format&fit=crop",
+      "alt": "Thoughtfully designed modern living room",
+      "category": "Architecture",
+      "likes": "6,491"
+    },
+    {
+      "image": "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=700&auto=format&fit=crop",
+      "alt": "Boats on a turquoise alpine lake",
+      "category": "Travel",
+      "likes": "18.2K"
+    },
+    {
+      "image": "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=700&auto=format&fit=crop",
+      "alt": "A mountain peak in the clouds",
+      "category": "Nature",
+      "likes": "9,174"
+    },
+    {
+      "image": "https://images.unsplash.com/photo-1533105079780-92b9be482077?w=700&auto=format&fit=crop",
+      "alt": "Sunset over a Mediterranean town",
+      "category": "Travel",
+      "likes": "7,023"
+    },
+    {
+      "image": "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=700&auto=format&fit=crop",
+      "alt": "A minimal boutique full of carefully chosen clothes",
+      "category": "Style",
+      "likes": "3,617"
+    }
+  ],
+  "messages": [
+    {
+      "userId": "ella",
+      "preview": "Sent you a post",
+      "time": "12m",
+      "unread": true,
+      "messages": [
+        {
+          "mine": false,
+          "text": "Hey! Have you seen Sofia's photos from Italy?"
+        },
+        {
+          "mine": true,
+          "text": "Yes! Already planning my next trip \ud83c\udf4b"
+        },
+        {
+          "mine": false,
+          "text": "We should go together this summer!"
+        }
+      ]
+    },
+    {
+      "userId": "james",
+      "preview": "That light was unreal \u2728",
+      "time": "1h",
+      "unread": true,
+      "messages": [
+        {
+          "mine": false,
+          "text": "Just got the photos back from our hike."
+        },
+        {
+          "mine": true,
+          "text": "These turned out amazing!"
+        },
+        {
+          "mine": false,
+          "text": "That light was unreal \u2728"
+        }
+      ]
+    },
+    {
+      "userId": "mia",
+      "preview": "You: Love this so much!",
+      "time": "3h",
+      "unread": false,
+      "messages": [
+        {
+          "mine": false,
+          "text": "Finally finished the new collection \ud83c\udfa8"
+        },
+        {
+          "mine": true,
+          "text": "Love this so much!"
+        }
+      ]
+    },
+    {
+      "userId": "noah",
+      "preview": "See you on Saturday!",
+      "time": "5h",
+      "unread": false,
+      "messages": [
+        {
+          "mine": false,
+          "text": "Coffee at the usual place?"
+        },
+        {
+          "mine": true,
+          "text": "Absolutely. 10am?"
+        },
+        {
+          "mine": false,
+          "text": "See you on Saturday!"
+        }
+      ]
+    }
+  ]
+}
