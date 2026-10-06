@@ -53,3 +53,4 @@ next-env.d.ts
 # Private activity journals never belong in the repository.
 /session/*
 !/session/README.md
+/.instants/

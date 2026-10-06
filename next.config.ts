@@ -8,7 +8,14 @@ const nextConfig: NextConfig = {
   turbopack: { root: projectRoot },
   outputFileTracingRoot: projectRoot,
   // A local build must never package someone's private activity journals.
-  outputFileTracingExcludes: { "/*": ["./session/**/*"] },
+  outputFileTracingExcludes: {
+    "/*": [
+      "./session/**/*",
+      "./.instants/**/*",
+      "./**/timeline.jsonl",
+      "./**/activity.jsonl",
+    ],
+  },
 };
 
 export default nextConfig;

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { useData } from "@/components/data-provider";
 import {
   Search,
   Heart,
@@ -25,9 +26,9 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { getCompany, type Thread } from "@/lib/data";
+import { type Thread } from "@/lib/data";
 import { useSwipeGesture, prefersReducedMotion } from "@/lib/motion";
-import { Avatar, Photo, Verified, getUser, mock, Post } from "./shared";
+import { Avatar, Photo, Verified, Post } from "./shared";
 
 export function ExploreView({
   onOpen,
@@ -36,9 +37,25 @@ export function ExploreView({
   onOpen: (post: Post) => void;
   onSearch: () => void;
 }) {
+  const { data } = useData();
   const [category, setCategory] = useState("All work");
   const [query, setQuery] = useState("");
-  const items = mock.explore.filter(
+  const entries = [
+    ...data.explore.map((item) => ({
+      ...item,
+      postId: data.posts.find((post) => post.images.includes(item.image))?.id,
+    })),
+    ...data.posts
+      .filter((post) => !post.images.length)
+      .map((post) => ({
+        image: "",
+        alt: post.alt,
+        category: post.workType || "Activity",
+        likes: "",
+        postId: post.id,
+      })),
+  ];
+  const items = entries.filter(
     (item) =>
       (category === "All work" || item.category === category) &&
       `${item.alt} ${item.category}`
@@ -68,14 +85,13 @@ export function ExploreView({
       </button>
       <Tabs value={category} onValueChange={setCategory}>
         <TabsList className="category-tabs">
-          {[
-            "All work",
-            ...new Set(mock.explore.map((item) => item.category)),
-          ].map((item) => (
-            <TabsTrigger key={item} value={item}>
-              {item}
-            </TabsTrigger>
-          ))}
+          {["All work", ...new Set(entries.map((item) => item.category))].map(
+            (item) => (
+              <TabsTrigger key={item} value={item}>
+                {item}
+              </TabsTrigger>
+            ),
+          )}
         </TabsList>
       </Tabs>
       <div className="explore-grid">
@@ -84,15 +100,25 @@ export function ExploreView({
             className={`explore-tile ${category === "All work" && index === 2 ? "tall" : ""}`}
             key={`${item.image}-${index}`}
             aria-label={`Open ${item.alt}`}
-            onClick={() =>
-              onOpen(
-                mock.posts.find((post) => post.images.includes(item.image)) ??
-                  mock.posts[0],
-              )
-            }
+            onClick={() => {
+              const post = data.posts.find((post) => post.id === item.postId);
+              if (post) onOpen(post);
+            }}
           >
-            <Photo src={item.image} alt={item.alt} />
-            {(mock.posts.find((post) => post.images.includes(item.image))
+            {item.image ? (
+              <Photo src={item.image} alt={item.alt} />
+            ) : (
+              <span className="profile-text-tile">
+                <small>{item.category}</small>
+                <strong>{item.alt}</strong>
+                <span>
+                  {data.posts
+                    .find((post) => post.id === item.postId)
+                    ?.caption.slice(0, 180)}
+                </span>
+              </span>
+            )}
+            {(data.posts.find((post) => post.images.includes(item.image))
               ?.images.length ?? 0) > 1 && (
               <Layers3 className="tile-type" size={22} />
             )}
@@ -100,7 +126,7 @@ export function ExploreView({
               <Heart fill="white" size={22} />
               {item.likes}
               <MessageCircle fill="white" size={22} />
-              {mock.posts.find((post) => post.images.includes(item.image))
+              {data.posts.find((post) => post.images.includes(item.image))
                 ?.commentCount ?? 0}
             </span>
           </button>
@@ -136,21 +162,22 @@ export function ProfileView({
   onSaved: () => void;
   onEdit: () => void;
 }) {
+  const { data, getUser, getCompany } = useData();
   const [tab, setTab] = useState("posts");
   const [editing, setEditing] = useState(false);
   const [profile, setProfile] = useState({
-    name: mock.currentUser.name,
-    bio: mock.currentUser.bio,
+    name: data.currentUser.name,
+    bio: data.currentUser.bio,
   });
   const [draft, setDraft] = useState(profile);
   const user = getUser(userId);
   const own = userId === "you";
   const company = getCompany(user.companyId);
   const teammates =
-    mock.users.filter(
+    data.users.filter(
       (person) => person.companyId === user.companyId && person.id !== user.id,
     ).length +
-    (!own && mock.currentUser.companyIds.includes(user.companyId) ? 1 : 0);
+    (!own && data.currentUser.companyIds.includes(user.companyId) ? 1 : 0);
   const selected =
     tab === "saved"
       ? posts.filter((post) => saved.includes(post.id))
@@ -208,7 +235,7 @@ export function ProfileView({
               <strong>{teammates}</strong> teammates
             </span>
             <span>
-              <strong>{own ? mock.currentUser.companyIds.length : 1}</strong>{" "}
+              <strong>{own ? data.currentUser.companyIds.length : 1}</strong>{" "}
               {own ? "teams" : "team"}
             </span>
           </div>
@@ -224,25 +251,19 @@ export function ProfileView({
         </div>
       </header>
       <div className="highlights">
-        {["Design reviews", "Testing", "Mobile flows", "Prototypes"].map(
-          (label, index) => (
-            <button
-              key={label}
-              onClick={() =>
-                onOpen(
-                  mock.posts.find((post) =>
-                    post.images.includes(mock.explore[index].image),
-                  ) ?? mock.posts[0],
-                )
-              }
-            >
+        {posts
+          .filter(
+            (post) => post.images.length && (own || post.userId === userId),
+          )
+          .slice(0, 4)
+          .map((post) => (
+            <button key={post.id} onClick={() => onOpen(post)}>
               <span>
-                <Photo src={mock.explore[index].image} alt={label} />
+                <Photo src={post.images[0]} alt={post.alt} />
               </span>
-              <strong>{label}</strong>
+              <strong>{post.workType || post.alt}</strong>
             </button>
-          ),
-        )}
+          ))}
       </div>
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList variant="line" className="profile-tabs">
@@ -266,7 +287,15 @@ export function ProfileView({
             onClick={() => onOpen(post)}
             aria-label={`Open ${post.alt}`}
           >
-            <Photo src={post.images[0]} alt={post.alt} />
+            {post.images[0] ? (
+              <Photo src={post.images[0]} alt={post.alt} />
+            ) : (
+              <span className="profile-text-tile">
+                <small>{post.source?.label ?? "Activity"}</small>
+                <strong>{post.alt}</strong>
+                <span>{post.caption.slice(0, 180)}</span>
+              </span>
+            )}
             <span className="tile-overlay">
               <Heart fill="white" />
               {post.likes.toLocaleString()}
@@ -353,15 +382,16 @@ export function MessagesView({
 }: {
   onProfile: (id: string) => void;
   threads: Thread[];
-  onSend: (userId: string, text: string) => boolean;
-  onRead: (userId: string) => void;
+  onSend: (userId: string, text: string, threadId?: string) => boolean;
+  onRead: (userId: string, threadId?: string) => void;
 }) {
+  const { data, getUser, getCompany } = useData();
   const [active, setActive] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [text, setText] = useState("");
   const bottom = useRef<HTMLDivElement>(null);
-  const thread = threads.find((item) => item.userId === active);
-  const person = active ? getUser(active) : null;
+  const thread = threads.find((item) => (item.id ?? item.userId) === active);
+  const person = thread ? getUser(thread.userId) : null;
   const [notice, setNotice] = useState("");
   useEffect(() => {
     bottom.current?.scrollIntoView({
@@ -370,15 +400,15 @@ export function MessagesView({
     });
   }, [threads, active]);
   function send() {
-    if (!text.trim() || !active) return;
-    if (onSend(active, text.trim())) setText("");
+    if (!text.trim() || !thread || thread.readOnly) return;
+    if (onSend(thread.userId, text.trim(), thread.id)) setText("");
   }
   return (
     <section className={`messages-page ${active ? "has-conversation" : ""}`}>
       <aside className="inbox">
         <header>
           <h1>
-            {mock.currentUser.username}
+            {data.currentUser.username}
             <ChevronDown size={18} />
           </h1>
           <button
@@ -408,25 +438,26 @@ export function MessagesView({
         {notice && <p className="inline-notice">{notice}</p>}
         {threads
           .filter((item) =>
-            getUser(item.userId)
-              .name.toLowerCase()
+            `${getUser(item.userId).name} ${item.title ?? ""} ${item.preview}`
+              .toLowerCase()
               .includes(query.toLowerCase()),
           )
           .map((item) => {
             const user = getUser(item.userId);
             return (
               <button
-                key={item.userId}
-                className={`thread-row ${active === item.userId ? "selected" : ""}`}
+                key={item.id ?? item.userId}
+                className={`thread-row ${active === (item.id ?? item.userId) ? "selected" : ""}`}
                 onClick={() => {
-                  setActive(item.userId);
-                  onRead(item.userId);
+                  setActive(item.id ?? item.userId);
+                  onRead(item.userId, item.id);
+                  setText("");
                   setNotice("");
                 }}
               >
                 <Avatar user={user} size={55} />
                 <span>
-                  <strong>{user.name}</strong>
+                  <strong>{item.title || user.name}</strong>
                   <span>
                     {item.preview} · {item.time}
                   </span>
@@ -454,7 +485,7 @@ export function MessagesView({
                 className="conversation-person"
                 onClick={() => onProfile(person.id)}
               >
-                <strong>{person.name}</strong>
+                <strong>{thread.title || person.name}</strong>
                 <span>
                   {person.role} · {getCompany(person.companyId)?.name}
                 </span>
@@ -504,7 +535,11 @@ export function MessagesView({
                   View profile
                 </button>
               </div>
-              <p className="message-date">Team conversation</p>
+              <p className="message-date">
+                {thread.readOnly
+                  ? "Imported conversation"
+                  : "Private conversation"}
+              </p>
               {thread.messages.map((message, index) => (
                 <div
                   key={index}
@@ -515,40 +550,44 @@ export function MessagesView({
               ))}
               <div ref={bottom} />
             </div>
-            <form
-              className="message-input"
-              onSubmit={(event) => {
-                event.preventDefault();
-                send();
-              }}
-            >
-              <button
-                type="button"
-                className="icon-button"
-                aria-label="Insert smile emoji"
-                onClick={() =>
-                  setText((current) => (current + " 🙂").slice(0, 4000))
-                }
+            {!thread.readOnly && (
+              <form
+                className="message-input"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  send();
+                }}
               >
-                <Smile />
-              </button>
-              <input
-                placeholder="Reply or share an update…"
-                maxLength={4000}
-                aria-label="Message"
-                value={text}
-                onChange={(event) => setText(event.target.value)}
-              />
-              <button
-                type="submit"
-                className="text-action"
-                disabled={!text.trim()}
-              >
-                Send
-              </button>
-            </form>
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label="Insert smile emoji"
+                  onClick={() =>
+                    setText((current) => (current + " 🙂").slice(0, 4000))
+                  }
+                >
+                  <Smile />
+                </button>
+                <input
+                  placeholder="Reply or share an update…"
+                  maxLength={4000}
+                  aria-label="Message"
+                  value={text}
+                  onChange={(event) => setText(event.target.value)}
+                />
+                <button
+                  type="submit"
+                  className="text-action"
+                  disabled={!text.trim()}
+                >
+                  Send
+                </button>
+              </form>
+            )}
             <p className="demo-message-note">
-              Replies are saved in this session.
+              {thread.readOnly
+                ? "Read-only source. Continue this conversation in the original app."
+                : "Replies are saved privately in activity.jsonl."}
             </p>
           </>
         ) : (
@@ -565,8 +604,8 @@ export function MessagesView({
               disabled={!threads.length}
               onClick={() => {
                 if (!threads[0]) return;
-                setActive(threads[0].userId);
-                onRead(threads[0].userId);
+                setActive(threads[0].id ?? threads[0].userId);
+                onRead(threads[0].userId, threads[0].id);
               }}
             >
               Send message
@@ -579,17 +618,19 @@ export function MessagesView({
 }
 
 export function ReelsView({ onOpen }: { onOpen: (post: Post) => void }) {
+  const { data, getUser, getCompany } = useData();
   const [index, setIndex] = useState(0);
   const [liked, setLiked] = useState(false);
-  const item = mock.explore[index];
-  const sourcePost =
-    mock.posts.find((post) => post.images.includes(item.image)) ??
-    mock.posts[0];
-  const user = getUser(sourcePost.userId);
+  const item = data.explore[index % Math.max(1, data.explore.length)];
+  const sourcePost = data.posts.find(
+    (post) => item && post.images.includes(item.image),
+  );
+  const user = getUser(sourcePost?.userId ?? "unknown");
   function advance(delta: number) {
     setIndex(
       (current) =>
-        (current + delta + mock.explore.length) % mock.explore.length,
+        (current + delta + data.explore.length) %
+        Math.max(1, data.explore.length),
     );
     setLiked(false);
   }
@@ -597,6 +638,14 @@ export function ReelsView({ onOpen }: { onOpen: (post: Post) => void }) {
     onUp: () => advance(1),
     onDown: () => advance(-1),
   });
+  if (!item || !sourcePost)
+    return (
+      <section className="empty-state">
+        <Layers3 size={42} />
+        <h2>No visual previews yet</h2>
+        <p>Images and artifacts from your timeline appear here.</p>
+      </section>
+    );
   return (
     <section className="reels-page">
       <div className="reel-player" {...gesture}>
@@ -619,15 +668,18 @@ export function ReelsView({ onOpen }: { onOpen: (post: Post) => void }) {
         </div>
       </div>
       <div className="reel-actions">
-        <button
-          className={`icon-button ${liked ? "liked" : ""}`}
-          aria-label="Like work preview"
-          aria-pressed={liked}
-          onClick={() => setLiked(!liked)}
-        >
-          <Heart fill={liked ? "currentColor" : "none"} />
-        </button>
-        <small>{item.likes}</small>
+        {!sourcePost.source?.readOnly && (
+          <>
+            <button
+              className={`icon-button ${liked ? "liked" : ""}`}
+              aria-label="Like work preview"
+              aria-pressed={liked}
+              onClick={() => setLiked(!liked)}
+            >
+              <Heart fill={liked ? "currentColor" : "none"} />
+            </button>
+          </>
+        )}
         <button
           className="icon-button"
           aria-label="Review this work"

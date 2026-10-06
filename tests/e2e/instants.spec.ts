@@ -1,5 +1,11 @@
-import { test, expect, type Page } from "@playwright/test";
-import { parseSessionDocument } from "../../engine/schema.mjs";
+import { test, expect, type Page, type Download } from "@playwright/test";
+import { randomUUID } from "node:crypto";
+import {
+  parseActivityEntry,
+  parseTimelineEntry,
+  parseLogEntries,
+} from "../../engine/log-schema.mjs";
+import { replayTimeline } from "../../engine/timeline.mjs";
 
 // UI behavior must not depend on third-party photo or font servers being online.
 test.beforeEach(async ({ page }) => {
@@ -45,13 +51,17 @@ async function readSession(page: Page) {
     typeof result !== "object" ||
     !("mode" in result) ||
     result.mode !== "file" ||
-    !("session" in result)
+    !("timeline" in result) ||
+    !Array.isArray(result.timeline) ||
+    !("activity" in result) ||
+    !Array.isArray(result.activity)
   ) {
     throw new Error("Expected a file-backed session response.");
   }
   return {
     mode: "file" as const,
-    session: parseSessionDocument(result.session),
+    timeline: result.timeline.map(parseTimelineEntry),
+    activity: result.activity.map(parseActivityEntry),
   };
 }
 
@@ -62,8 +72,38 @@ async function useBrowserStorage(page: Page) {
         "Browser persistence must not send activity to the server.",
       );
     }
-    await route.fulfill({ json: { mode: "browser", session: null } });
+    await route.fulfill({ json: { mode: "browser" } });
   });
+}
+
+async function downloadText(download: Download) {
+  const stream = await download.createReadStream();
+  expect(stream).not.toBeNull();
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream!) chunks.push(Buffer.from(chunk));
+  return Buffer.concat(chunks).toString("utf8");
+}
+
+async function importFeed(
+  page: Page,
+  text: string,
+  format: "timeline" | "codex" | "claude",
+  replace = false,
+) {
+  await page.locator(".source-import-button").click();
+  const dialog = page.getByRole("dialog");
+  await dialog
+    .getByRole("combobox", { name: "Source format" })
+    .selectOption(format);
+  await dialog.getByRole("textbox", { name: "Timeline JSONL" }).fill(text);
+  await dialog
+    .getByRole("checkbox", { name: "Replace the existing feed" })
+    .setChecked(replace);
+  await dialog
+    .getByRole("button", { name: "Import timeline", exact: true })
+    .click();
+  await expect(dialog).toHaveCount(0);
+  await waitForSaved(page);
 }
 
 test("mobile glass dock, shared review responses, and persisted theme", async ({
@@ -176,7 +216,7 @@ test("team and request-kind filters show the right people and work", async ({
   await expect(page.locator("[data-queue-id]")).toHaveCount(2);
   await expect(page.locator('[data-queue-id="a1"]')).toBeVisible();
   await expect(page.locator('[data-queue-id="a5"]')).toBeVisible();
-  await page.getByRole("tab", { name: "All teams", exact: true }).click();
+  await page.getByRole("tab", { name: "All activity", exact: true }).click();
   await expect(page.locator("[data-queue-id]")).toHaveCount(3);
   for (const [label, id] of [
     ["Comments", "a4"],
@@ -287,9 +327,7 @@ test("queue replies reach the correct post or DM and survive a refresh", async (
   const result = await readSession(page);
   expect(result.mode).toBe("file");
   expect(
-    result.session.activity.filter(
-      (event: { type: string }) => event.type === "queue.reply",
-    ),
+    result.activity.filter((event) => event.type === "queue.reply"),
   ).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
@@ -358,12 +396,12 @@ test("a full device store keeps the draft and leaves the request unresolved", as
   await page.setViewportSize({ width: 390, height: 844 });
   await openReady(page);
   const before = await page.evaluate(() =>
-    localStorage.getItem("instants-session-v1"),
+    localStorage.getItem("instants-activity-v1"),
   );
   await page.evaluate(() => {
     const original = Storage.prototype.setItem;
     Storage.prototype.setItem = function (key: string, value: string) {
-      if (key === "instants-session-v1")
+      if (key === "instants-activity-v1")
         throw new DOMException("Device storage is full", "QuotaExceededError");
       original.call(this, key, value);
     };
@@ -378,7 +416,7 @@ test("a full device store keeps the draft and leaves the request unresolved", as
   );
   await expect(reply).toHaveValue("Please keep this unsent draft.");
   expect(
-    await page.evaluate(() => localStorage.getItem("instants-session-v1")),
+    await page.evaluate(() => localStorage.getItem("instants-activity-v1")),
   ).toBe(before);
   await page.keyboard.press("Escape");
   await expect(page.locator('[data-queue-id="a1"]')).toBeVisible();
@@ -392,23 +430,158 @@ test("an unreadable device session is preserved for recovery", async ({
 }) => {
   await useBrowserStorage(page);
   await page.addInitScript(() =>
-    localStorage.setItem("instants-session-v1", "{this is not valid JSON"),
+    localStorage.setItem("instants-activity-v1", "{this is not valid JSON"),
   );
   await page.goto("/");
   await expect(page.locator("[data-session-mode]")).toHaveAttribute(
     "data-session-mode",
-    "unavailable",
+    "browser",
   );
   await expect(page.locator("[data-session-status]")).toHaveAttribute(
     "data-session-status",
     "error",
   );
   expect(
-    await page.evaluate(() => localStorage.getItem("instants-session-v1")),
+    await page.evaluate(() => localStorage.getItem("instants-activity-v1")),
   ).toBe("{this is not valid JSON");
 });
 
-test("an interrupted local save exports the pending reply and retries once after reload", async ({
+test("a damaged timeline tail preserves its valid feed and original export", async ({
+  page,
+}) => {
+  await useBrowserStorage(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openReady(page);
+  const original = await page.evaluate(() =>
+    localStorage.getItem("instants-timeline-v1")!,
+  );
+  const damaged = original + '{"v":1,"unfinished":';
+  await page.evaluate(
+    (value) => localStorage.setItem("instants-timeline-v1", value),
+    damaged,
+  );
+  await page.reload();
+  await expect(page.locator("[data-session-status]")).toHaveAttribute(
+    "data-session-status",
+    "error",
+  );
+  await expect(page.locator(".post-card")).toHaveCount(4);
+  expect(
+    await page.evaluate(() => localStorage.getItem("instants-timeline-v1")),
+  ).toBe(damaged);
+  await page.locator(".source-import-button").click();
+  const downloading = page.waitForEvent("download");
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Export timeline", exact: true })
+    .click();
+  expect(await downloadText(await downloading)).toBe(damaged);
+});
+
+test("a late refresh response cannot erase newly acknowledged activity", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openReady(page);
+  const stale = await page.evaluate(async () =>
+    (await fetch("/api/session", { cache: "no-store" })).json(),
+  );
+  let intercepted = false;
+  let release!: () => void;
+  let arrived!: () => void;
+  let delivered!: () => void;
+  const hold = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const started = new Promise<void>((resolve) => {
+    arrived = resolve;
+  });
+  const finished = new Promise<void>((resolve) => {
+    delivered = resolve;
+  });
+  await page.route("**/api/session*", async (route) => {
+    if (route.request().method() === "GET" && !intercepted) {
+      intercepted = true;
+      arrived();
+      await hold;
+      try {
+        await route.fulfill({ json: stale });
+      } catch {
+        // Aborting the old read when a write starts is the expected fix.
+      } finally {
+        delivered();
+      }
+    } else await route.continue();
+  });
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await started;
+  const post = page.locator(".post-card").first();
+  await post.getByRole("button", { name: "Save post", exact: true }).click();
+  await waitForSaved(page);
+  release();
+  await finished;
+  await page.unroute("**/api/session*");
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
+  );
+  await expect(
+    post.getByRole("button", { name: "Unsave post", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  expect(
+    (await readSession(page)).activity.filter(
+      (entry) => entry.type === "post.save",
+    ),
+  ).toHaveLength(1);
+  await page.reload();
+  await waitForSaved(page);
+  await expect(
+    post.getByRole("button", { name: "Unsave post", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+});
+
+test("a mismatched profile write changes neither private journal", async ({
+  page,
+}) => {
+  await openReady(page);
+  const result = await page.evaluate(async (id) => {
+    const read = async (kind: string) =>
+      (
+        await fetch(`/api/session?export=${kind}`, { cache: "no-store" })
+      ).text();
+    const before = await Promise.all([read("timeline"), read("activity")]);
+    const response = await fetch("/api/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Instants-Profile": id },
+      body: JSON.stringify({
+        log: "activity",
+        entries: [
+          {
+            v: 1,
+            id: crypto.randomUUID(),
+            at: new Date().toISOString(),
+            type: "post.save",
+            targetId: "p1",
+            data: { postId: "p1", saved: true },
+          },
+        ],
+      }),
+    });
+    const after = await Promise.all([read("timeline"), read("activity")]);
+    return { status: response.status, before, after };
+  }, randomUUID());
+  expect(result.status).toBe(409);
+  expect(result.after).toEqual(result.before);
+  expect(
+    (await readSession(page)).activity.filter(
+      (entry) => entry.type === "post.save",
+    ),
+  ).toHaveLength(0);
+});
+
+test("an interrupted local save exports the pending reply and retries without losing or duplicating the action", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -421,7 +594,7 @@ test("an interrupted local save exports the pending reply and retries once after
         ...route
           .request()
           .postDataJSON()
-          .events.map((event: { id: string }) => event.id),
+          .entries.map((event: { id: string }) => event.id),
       );
       if (unavailable) {
         await route.fulfill({
@@ -452,55 +625,47 @@ test("an interrupted local save exports the pending reply and retries once after
   const downloadPromise = page.waitForEvent("download");
   await page
     .getByRole("alert")
-    .getByRole("button", { name: "Export session", exact: true })
+    .getByRole("button", { name: "Export activity", exact: true })
     .click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toMatch(
-    /^instants-session-[a-f0-9-]+\.json$/,
-  );
-  const stream = await download.createReadStream();
-  expect(stream).not.toBeNull();
-  const chunks: Buffer[] = [];
-  for await (const chunk of stream!) chunks.push(Buffer.from(chunk));
-  const exported = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-  expect(exported.schemaVersion).toBe(1);
-  const pendingReply = exported.activity.find(
-    (event: { type: string }) => event.type === "queue.reply",
-  );
+  expect(download.suggestedFilename()).toBe("activity.jsonl");
+  const exported = parseLogEntries(await downloadText(download), "activity");
+  expect(exported.diagnostics).toEqual([]);
+  const pendingReply = exported.entries.find(
+    (event) => event.type === "queue.reply",
+  )!;
   expect(pendingReply.data).toMatchObject({
     itemId: "a1",
     userId: "ella",
     text: replyText,
   });
   expect(attemptedIds).toContain(pendingReply.id);
-  const outboxKey = "instants-outbox:" + exported.id;
   expect(
-    await page.evaluate(
-      (key) => JSON.parse(localStorage.getItem(key) || "[]").length,
-      outboxKey,
+    await page.evaluate(() =>
+      Object.keys(localStorage).filter((key) =>
+        key.startsWith("instants-outbox:"),
+      ),
     ),
-  ).toBe(1);
+  ).toEqual([]);
   unavailable = false;
-  await page.reload();
+  await page
+    .getByRole("alert")
+    .getByRole("button", { name: "Retry", exact: true })
+    .click();
   await waitForSaved(page);
   await expect(page.locator('[data-queue-id="a1"]')).toHaveCount(0);
   const result = await readSession(page);
-  const savedReplies = result.session.activity.filter(
-    (event: { type: string }) => event.type === "queue.reply",
+  const savedReplies = result.activity.filter(
+    (event) => event.type === "queue.reply",
   );
   expect(savedReplies).toHaveLength(1);
   expect(savedReplies[0].id).toBe(pendingReply.id);
   expect(attemptedIds.every((id) => id === pendingReply.id)).toBe(true);
-  expect(
-    await page.evaluate((key) => localStorage.getItem(key), outboxKey),
-  ).toBeNull();
   await page.reload();
   await waitForSaved(page);
   const reloaded = await readSession(page);
   expect(
-    reloaded.session.activity.filter(
-      (event: { type: string }) => event.type === "queue.reply",
-    ),
+    reloaded.activity.filter((event) => event.type === "queue.reply"),
   ).toHaveLength(1);
 });
 
@@ -511,7 +676,7 @@ test("sharing to two teammates is atomic when device storage fails", async ({
   await page.setViewportSize({ width: 390, height: 844 });
   await openReady(page);
   const before = await page.evaluate(() =>
-    localStorage.getItem("instants-session-v1"),
+    localStorage.getItem("instants-activity-v1"),
   );
   await page
     .locator(".post-card")
@@ -531,7 +696,7 @@ test("sharing to two teammates is atomic when device storage fails", async ({
     const original = Storage.prototype.setItem;
     let failNextWrite = true;
     Storage.prototype.setItem = function (key: string, value: string) {
-      if (key === "instants-session-v1" && failNextWrite) {
+      if (key === "instants-activity-v1" && failNextWrite) {
         failNextWrite = false;
         throw new DOMException("Device storage is full", "QuotaExceededError");
       }
@@ -546,17 +711,18 @@ test("sharing to two teammates is atomic when device storage fails", async ({
   await expect(dialog).toBeVisible();
   await expect(dialog.locator(".share-people .checked")).toHaveCount(2);
   expect(
-    await page.evaluate(() => localStorage.getItem("instants-session-v1")),
+    await page.evaluate(() => localStorage.getItem("instants-activity-v1")),
   ).toBe(before);
   await dialog.getByRole("button", { name: "Send", exact: true }).click();
   await expect(dialog).toHaveCount(0);
   await waitForSaved(page);
-  const activity = await page.evaluate(
-    () => JSON.parse(localStorage.getItem("instants-session-v1")!).activity,
-  );
-  const messages = activity.filter(
-    (event: { type: string }) => event.type === "message.send",
-  );
+  const activity = parseLogEntries(
+    await page.evaluate(
+      () => localStorage.getItem("instants-activity-v1") || "",
+    ),
+    "activity",
+  ).entries;
+  const messages = activity.filter((event) => event.type === "message.send");
   expect(messages).toHaveLength(2);
   expect(
     messages
@@ -637,7 +803,7 @@ test("sharing work rejects unsupported uploads and persists a raster preview", a
     1,
   );
   const result = await readSession(page);
-  const created = result.session.activity.filter(
+  const created = result.activity.filter(
     (event) => event.type === "post.create",
   );
   expect(created).toHaveLength(1);
@@ -647,7 +813,210 @@ test("sharing work rejects unsupported uploads and persists a raster preview", a
     workType: "Feedback",
     caption,
   });
+  expect(replayTimeline(result.timeline).posts).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ id: created[0].data.post.id, caption }),
+    ]),
+  );
 });
+
+for (const storage of ["file", "browser"] as const) {
+  test(`${storage}: imported agent conversations, notes, bookmarks and reading state survive reload`, async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    if (storage === "browser") await useBrowserStorage(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(page);
+    const conversation = (
+      sessionId: string,
+      question: string,
+      answer: string,
+    ) => [
+      {
+        type: "user",
+        sessionId,
+        uuid: `${sessionId}-user`,
+        timestamp: "2026-10-07T10:00:00.000Z",
+        cwd: "/private/test-workspace",
+        message: { role: "user", content: question },
+      },
+      {
+        type: "assistant",
+        sessionId,
+        uuid: `${sessionId}-assistant`,
+        timestamp: "2026-10-07T10:01:00.000Z",
+        message: {
+          role: "assistant",
+          content: [
+            { type: "thinking", thinking: "NOT_FOR_DISPLAY" },
+            { type: "text", text: answer },
+          ],
+        },
+      },
+    ];
+    const answer = "Onboarding build passed all targeted checks.";
+    const source =
+      [
+        ...conversation(
+          "onboarding-session",
+          "Review the onboarding build",
+          answer,
+        ),
+        ...conversation(
+          "accessibility-session",
+          "Review the accessibility pass",
+          "Accessibility pass found one focus issue.",
+        ),
+      ]
+        .map((line) => JSON.stringify(line))
+        .join("\n") + "\n";
+    await importFeed(page, source, "claude", true);
+    await expect(page.locator(".post-card")).toHaveCount(2);
+    await expect(page.locator("[data-queue-id]")).toHaveCount(0);
+    await expect(page.getByText("NOT_FOR_DISPLAY")).toHaveCount(0);
+    const post = page.locator(".post-card").filter({ hasText: answer });
+    await expect(
+      post.getByRole("button", { name: "Like post", exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      post.getByRole("button", { name: "Share post", exact: true }),
+    ).toHaveCount(0);
+    await post.getByRole("button", { name: "Save post", exact: true }).click();
+    await post
+      .getByRole("button", { name: "View comments", exact: true })
+      .click();
+    const note =
+      "My private follow-up: verify keyboard navigation before the next review.";
+    await page
+      .getByRole("textbox", { name: "Write a private note" })
+      .fill(note);
+    await page.getByRole("button", { name: "Save note", exact: true }).click();
+    await waitForSaved(page);
+    await page.keyboard.press("Escape");
+    await dock(page, "Messages").click();
+    await expect(page.locator(".thread-row")).toHaveCount(2);
+    await page
+      .locator(".thread-row")
+      .filter({ hasText: "Review the onboarding build" })
+      .click();
+    await expect(
+      page.locator(".message-bubble").filter({ hasText: answer }),
+    ).toBeVisible();
+    await expect(page.locator(".message-input")).toHaveCount(0);
+    await waitForSaved(page);
+    await page
+      .getByRole("button", { name: "Back to inbox", exact: true })
+      .click();
+    await expect(
+      page
+        .locator(".thread-row")
+        .filter({ hasText: "Review the onboarding build" })
+        .locator("i"),
+    ).toHaveCount(0);
+    await expect(
+      page
+        .locator(".thread-row")
+        .filter({ hasText: "Review the accessibility pass" })
+        .locator("i"),
+    ).toHaveCount(1);
+    await page
+      .locator(".thread-row")
+      .filter({ hasText: "Review the accessibility pass" })
+      .click();
+    await expect(
+      page
+        .locator(".message-bubble")
+        .filter({ hasText: "Accessibility pass found one focus issue." }),
+    ).toBeVisible();
+    await expect(
+      page.locator(".message-bubble").filter({ hasText: answer }),
+    ).toHaveCount(0);
+    await waitForSaved(page);
+    await page.reload();
+    await waitForSaved(page);
+    await expect(
+      post.getByRole("button", { name: "Unsave post", exact: true }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await post
+      .getByRole("button", { name: "View comments", exact: true })
+      .click();
+    await expect(
+      page.getByRole("dialog").getByText(note, { exact: false }),
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
+
+    const getLogs = async () =>
+      storage === "file"
+        ? readSession(page)
+        : {
+            timeline: parseLogEntries(
+              await page.evaluate(
+                () => localStorage.getItem("instants-timeline-v1") || "",
+              ),
+              "timeline",
+            ).entries,
+            activity: parseLogEntries(
+              await page.evaluate(
+                () => localStorage.getItem("instants-activity-v1") || "",
+              ),
+              "activity",
+            ).entries,
+          };
+    const before = await getLogs();
+    const imported = replayTimeline(before.timeline);
+    const selected = imported.posts.find((item) => item.caption === answer)!;
+    expect(before.activity).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: "post.save", targetId: selected.id }),
+        expect.objectContaining({ type: "item.read", targetId: selected.id }),
+        expect.objectContaining({
+          type: "note.added",
+          targetId: selected.id,
+          data: { text: note },
+        }),
+      ]),
+    );
+    await importFeed(page, source, "claude");
+    const duplicate = await getLogs();
+    expect(duplicate.timeline.length).toBe(before.timeline.length);
+    expect(replayTimeline(duplicate.timeline).posts).toHaveLength(2);
+
+    await page.locator(".source-import-button").click();
+    const dialog = page.getByRole("dialog");
+    for (const kind of ["timeline", "activity"] as const) {
+      const downloading = page.waitForEvent("download");
+      await dialog
+        .getByRole("button", { name: `Export ${kind}`, exact: true })
+        .click();
+      const download = await downloading;
+      expect(download.suggestedFilename()).toBe(`${kind}.jsonl`);
+      const parsed = parseLogEntries(await downloadText(download), kind);
+      expect(parsed.diagnostics).toEqual([]);
+      expect(parsed.entries.length).toBe(duplicate[kind].length);
+    }
+    await page.keyboard.press("Escape");
+    const removals = imported.posts.map((item) => ({
+      v: 1,
+      id: randomUUID(),
+      at: new Date().toISOString(),
+      type: "record.remove",
+      targetId: item.id,
+      data: {},
+    }));
+    await importFeed(
+      page,
+      removals.map((entry) => JSON.stringify(entry)).join("\n") + "\n",
+      "timeline",
+    );
+    await expect(page.locator(".post-card")).toHaveCount(0);
+    await page.reload();
+    await waitForSaved(page);
+    await expect(page.locator(".post-card")).toHaveCount(0);
+    await expect(page.locator("[data-queue-id]")).toHaveCount(0);
+    expect(replayTimeline((await getLogs()).timeline).posts).toHaveLength(0);
+  });
+}
 
 test("motion lab controls, focus return, and reduced motion", async ({
   page,

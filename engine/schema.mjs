@@ -21,7 +21,7 @@ const identifier = z
   .string()
   .min(1)
   .max(120)
-  .regex(/^[a-zA-Z0-9_-]+$/);
+  .regex(/^[a-zA-Z0-9_:-]+$/);
 const text = z.string().trim().min(1).max(MAX_TEXT_LENGTH);
 const caption = z.string().max(MAX_TEXT_LENGTH);
 const count = z.number().int().min(0).max(1_000_000_000);
@@ -101,8 +101,8 @@ const payloads = {
     .object({ postId: identifier, optionId: identifier })
     .strict(),
   "post.comment": z.object({ postId: identifier, text }).strict(),
-  "message.send": z.object({ userId: identifier, text }).strict(),
-  "message.read": z.object({ userId: identifier }).strict(),
+  "message.send": z.object({ userId: identifier, text, threadId: identifier.optional() }).strict(),
+  "message.read": z.object({ userId: identifier, threadId: identifier.optional() }).strict(),
   "queue.reply": z
     .object({
       itemId: identifier,

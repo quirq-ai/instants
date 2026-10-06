@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useData } from "@/components/data-provider";
 import {
   AtSign,
   Check,
@@ -18,14 +19,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Avatar, Photo } from "@/components/instagram/shared";
-import {
-  getCompany,
-  getUser,
-  mock,
-  type AttentionKind,
-  type Post,
-  type QueueItem,
-} from "@/lib/data";
+import { type AttentionKind, type Post, type QueueItem } from "@/lib/data";
 import { useSwipeGesture } from "@/lib/motion";
 import "./collaboration.css";
 
@@ -45,6 +39,7 @@ export function AttentionQueue({
   onOpen: (id: string) => void;
   onCreate: () => void;
 }) {
+  const { data, getUser } = useData();
   const [category, setCategory] = useState<"all" | AttentionKind>("all");
   const [showReplied, setShowReplied] = useState(false);
   const pending = items.filter((item) => !item.resolved);
@@ -91,7 +86,7 @@ export function AttentionQueue({
       <div className="stories attention-people">
         <button className="story your-story" onClick={onCreate}>
           <span className="own-story-wrap">
-            <Avatar user={mock.currentUser} size={64} />
+            <Avatar user={data.currentUser} size={64} />
             <span className="add-story">
               <Plus size={13} />
             </span>
@@ -164,6 +159,7 @@ export function QueueReplyDialog({
   onResolve: (item: QueueItem, resolved: boolean) => void;
   onOpenPost: (id: string) => void;
 }) {
+  const { getUser, getCompany } = useData();
   const [text, setText] = useState("");
   const user = getUser(item.userId),
     company = getCompany(item.companyId),
@@ -206,7 +202,10 @@ export function QueueReplyDialog({
           <header className="attention-person-header">
             <Avatar user={user} size={46} ring seen={item.resolved} />
             <div>
-              <DialogTitle>Reply to {user.name.split(" ")[0]}</DialogTitle>
+              <DialogTitle>
+                {item.readOnly ? "Activity from" : "Reply to"}{" "}
+                {user.name.split(" ")[0]}
+              </DialogTitle>
               <DialogDescription>
                 @{company?.handle} · {user.role}
               </DialogDescription>
@@ -223,7 +222,7 @@ export function QueueReplyDialog({
               className="attention-post-link"
               onClick={() => onOpenPost(post.id)}
             >
-              <Photo src={post.images[0]} alt={post.alt} />
+              {post.images[0] && <Photo src={post.images[0]} alt={post.alt} />}
               <span>
                 <small>
                   {post.workType} · @{company?.handle}
@@ -255,40 +254,52 @@ export function QueueReplyDialog({
             ))}
           </div>
         </div>
-        <form
-          className="attention-reply"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (text.trim() && onReply(item, text.trim())) setText("");
-          }}
-        >
-          <label className="sr-only" htmlFor="queue-reply">
-            Your reply
-          </label>
-          <textarea
-            id="queue-reply"
-            aria-label="Your reply"
-            placeholder={`Reply to ${user.name.split(" ")[0]}…`}
-            value={text}
-            maxLength={4000}
-            onChange={(event) => setText(event.target.value)}
-            rows={2}
-          />
-          <button
-            className="primary-button"
-            disabled={!text.trim()}
-            type="submit"
+        {!item.readOnly && (
+          <form
+            className="attention-reply"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (text.trim() && onReply(item, text.trim())) setText("");
+            }}
           >
-            <Send size={15} /> Send reply
-          </button>
-        </form>
+            <label className="sr-only" htmlFor="queue-reply">
+              Your reply
+            </label>
+            <textarea
+              id="queue-reply"
+              aria-label="Your reply"
+              placeholder={`Reply to ${user.name.split(" ")[0]}…`}
+              value={text}
+              maxLength={4000}
+              onChange={(event) => setText(event.target.value)}
+              rows={2}
+            />
+            <button
+              className="primary-button"
+              disabled={!text.trim()}
+              type="submit"
+            >
+              <Send size={15} /> Send reply
+            </button>
+          </form>
+        )}
+        {item.readOnly && (
+          <p className="source-readonly-note">
+            This source is read-only. Dismissing it only updates your private
+            activity.
+          </p>
+        )}
         <footer className="attention-dialog-footer">
           <button
             className="attention-resolve"
             onClick={() => onResolve(item, !item.resolved)}
           >
             <Check size={15} />
-            {item.resolved ? "Reopen request" : "Mark as done"}
+            {item.resolved
+              ? "Reopen request"
+              : item.readOnly
+                ? "Dismiss for me"
+                : "Mark as done"}
           </button>
           <div>
             <button

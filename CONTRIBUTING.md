@@ -1,6 +1,6 @@
 # Contributing to Instants
 
-Instants is a team collaboration prototype with private per-person activity. Contributions should keep the demo easy to run, the interactions accessible, and the boundary between demo state and real delivery clear.
+Instants visualizes agent activity with two JSONL logs and private per-person progress. Contributions should keep the app easy to run, imported history readable, interactions accessible, and source capabilities honest.
 
 ## Set up
 
@@ -17,10 +17,10 @@ The Next.js app runs on port 5180. `/motion` is the playground for shared motion
 
 - Describe the problem and the observable result you want. Open an issue before a large feature or architectural change so maintainers can discuss scope.
 - Keep brand values in `config/brand.json`, motion values in `config/motion.json`, and seed content in `data/mock.json`.
-- Keep presentation in the [UI layer](docs/ui.md) and persistent behavior in the [engine](docs/engine.md). Reuse components and derive shared state through the session projection.
-- For a new persistent action, update its TypeScript payload, runtime validation, and projection together. Use stable IDs, explicit desired values, and deterministic replay. Do not read files or create a second storage format inside a view component.
+- Keep presentation in the [UI layer](docs/ui.md) and persistent behavior in the [engine](docs/engine.md). Reuse components and derive shared state through the two-log projection and data provider.
+- For a new persistent action, update its TypeScript payload, runtime validation, and projection together. Use stable IDs, explicit desired values, and deterministic replay. Do not read provider files or create additional persistent data stores inside a view component. Timeline records use `data: { kind, value }`; private actions belong in `activity.jsonl`.
 - Preserve native touch and wheel scrolling. Give gestures visible and keyboard-accessible alternatives, and respect reduced motion.
-- Use sample content. Do not commit `session/` runtime journals, downloaded session exports, credentials, personal conversations, production data, local hosting identity, or generated build output.
+- Use sample content. Do not commit `.instants/` logs, legacy `session/` journals, downloaded timeline/activity exports, credentials, personal conversations, production data, local hosting identity, or generated build output.
 - Preserve upstream license notices. Include the source and license for any new third-party code or assets.
 
 ## Validate
@@ -40,9 +40,11 @@ Local browser tests use Next.js development mode by default. CI builds Next.js f
 
 For deployment changes, preserve the standard Next.js build and the settings in `vercel.json`. Vercel imports use the repository root (`.`); see [the deployment guide](README.md#deploy-to-vercel). The optional `dev:sites`, `build:sites`, and `start:sites` scripts do not participate in Vercel deployments.
 
-For session changes, check append validation, idempotent retries, replay after refresh, and separate browser-session isolation. Exercise both the local file mode and the Vercel/browser mode. Do not turn a failed save into a successful status, or overwrite an unreadable journal to hide an error. The local file store is intended for one Node process, not multi-process coordination.
+For storage changes, check both JSONL logs, append validation, idempotent retries, stable target IDs, replay after refresh, corruption diagnostics and private profile isolation. Exercise both the local file mode and the Vercel/browser mode. Do not turn a failed save into a successful status, or overwrite an unreadable journal to hide an error. The local file store permits one owning engine and rejects competing ownership without a persistent lock file. Browser storage has a separate quota and coordination boundary.
 
-For UI changes, inspect both themes at a narrow mobile width and a desktop width. Follow DM and post-related requests through reply and resolve; check that the result reaches the appropriate demo thread or comments. Check keyboard focus, Escape dismissal, relevant touch/mouse gestures, and reduced motion. Include a screenshot or short recording when it helps explain the result. Record any checks you could not run and why.
+For adapter changes, use fictional native exports. Test repeated imports, distinct conversations from the same actor, unsupported lines, malformed input, and readonly capability enforcement. Do not promote historical questions to live approval requests. A source reader is not authorization or a transport for external commands.
+
+For UI changes, inspect both themes at a narrow mobile width and a desktop width. Follow DM and post-related requests through reply and resolve; check that the result reaches the appropriate local thread or comments. Import a text-only conversation, verify details/search/save/private notes, and confirm readonly items have no external-send controls. Check keyboard focus, Escape dismissal, relevant touch/mouse gestures, and reduced motion. Include a screenshot or short recording when it helps explain the result. Record any checks you could not run and why.
 
 ## Open a pull request
 

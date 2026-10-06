@@ -2,15 +2,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import {
-  mkdir,
-  mkdtemp,
-  readFile,
-  readdir,
-  rm,
-  writeFile,
-} from "node:fs/promises";
-import path from "node:path";
-import {
   appendActivity,
   createSessionDocument,
   isSessionId,
@@ -19,7 +10,6 @@ import {
   parseSessionDocument,
   SessionError,
 } from "../engine/schema.mjs";
-import { createSessionStore } from "../engine/session-store.mjs";
 import { hasSameOrigin } from "../engine/http.mjs";
 
 const now = "2026-10-03T10:00:00.000Z";
@@ -81,19 +71,6 @@ test("same-origin checks use the addressed host and reject foreign or malformed 
     );
   }
 });
-
-async function tempStore(t) {
-  const parent = path.resolve(".sites-runtime", "session-tests");
-  await mkdir(parent, { recursive: true });
-  const directory = await mkdtemp(path.join(parent, "instants-session-test-"));
-  t.after(async () => {
-    const resolved = path.resolve(directory);
-    assert.equal(path.dirname(resolved), parent);
-    assert.ok(path.basename(resolved).startsWith("instants-session-test-"));
-    await rm(resolved, { recursive: true, force: true });
-  });
-  return { directory, store: createSessionStore({ directory }) };
-}
 
 test("the activity contract accepts each supported action", () => {
   const cases = [
@@ -256,82 +233,4 @@ test("full or invalid sessions are rejected without trimming old activity", () =
     SessionError,
   );
   assert.throws(() => createSessionDocument("../../other"), SessionError);
-});
-
-test("local sessions persist across store instances and remain separate", async (t) => {
-  const { directory, store } = await tempStore(t);
-  const first = await store.createSession();
-  const second = await store.createSession();
-  assert.notEqual(first.id, second.id);
-  await store.appendSession(first.id, [
-    event("message.send", { userId: "james", text: "Private draft reply" }),
-  ]);
-  const restarted = createSessionStore({ directory });
-  const saved = await restarted.loadSession(first.id);
-  assert.equal(saved.activity[0].data.text, "Private draft reply");
-  assert.equal((await restarted.loadSession(second.id)).activity.length, 0);
-  assert.deepEqual(await readdir(path.join(directory, first.id)), [
-    "session.json",
-  ]);
-  const raw = JSON.parse(
-    await readFile(path.join(directory, first.id, "session.json"), "utf8"),
-  );
-  assert.deepEqual(raw, saved);
-});
-
-test("concurrent appends and retries do not lose or duplicate events", async (t) => {
-  const { directory, store } = await tempStore(t);
-  const session = await store.createSession();
-  const alternate = createSessionStore({ directory });
-  const events = Array.from({ length: 25 }, (_, index) =>
-    event("post.comment", { postId: "p1", text: `Comment ${index}` }),
-  );
-  await Promise.all(
-    events.map((item, index) =>
-      (index % 2 ? store : alternate).appendSession(session.id, [item]),
-    ),
-  );
-  await Promise.all(
-    events.map((item) => store.appendSession(session.id, [item])),
-  );
-  const saved = await store.loadSession(session.id);
-  assert.equal(saved.activity.length, 25);
-  assert.deepEqual(
-    new Set(saved.activity.map((item) => item.id)),
-    new Set(events.map((item) => item.id)),
-  );
-});
-
-test("failed appends preserve the journal and do not block later writes", async (t) => {
-  const { store } = await tempStore(t);
-  const session = await store.createSession();
-  const first = event();
-  await store.appendSession(session.id, [first]);
-  await assert.rejects(
-    store.appendSession(session.id, [
-      { ...first, data: { postId: "p1", liked: false } },
-    ]),
-    (error) => error.code === "event_conflict",
-  );
-  await store.appendSession(session.id, [
-    event("post.save", { postId: "p2", saved: true }),
-  ]);
-  assert.equal((await store.loadSession(session.id)).activity.length, 2);
-  await assert.rejects(store.loadSession("../../../elsewhere"), SessionError);
-  await assert.rejects(
-    store.appendSession(randomUUID(), [event()]),
-    (error) => error.status === 401,
-  );
-});
-
-test("corrupted files are reported and preserved instead of silently reset", async (t) => {
-  const { directory, store } = await tempStore(t);
-  const session = await store.createSession();
-  const filename = path.join(directory, session.id, "session.json");
-  await writeFile(filename, "{broken-json", "utf8");
-  await assert.rejects(
-    store.loadSession(session.id),
-    (error) => error.code === "invalid_session" && error.status === 500,
-  );
-  assert.equal(await readFile(filename, "utf8"), "{broken-json");
 });

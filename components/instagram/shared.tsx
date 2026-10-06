@@ -2,7 +2,6 @@
 import { useEffect, useRef, useState } from "react";
 import { BadgeCheck, Camera } from "lucide-react";
 import { brand } from "@/lib/brand";
-export { mock, getUser, getCompany } from "@/lib/data";
 export type { User, Instant, Post } from "@/lib/data";
 export function Photo({
   src,
@@ -22,7 +21,7 @@ export function Photo({
     if (image.current?.complete && image.current.naturalWidth === 0)
       setFailedSrc(src);
   }, [src]);
-  return failedSrc === src ? (
+  return !src || failedSrc === src ? (
     <div className={`photo-fallback ${className}`} role="img" aria-label={alt}>
       <Camera size={30} />
       <span>{alt}</span>
@@ -54,7 +53,20 @@ export function Avatar({
       className={`avatar ${ring ? "avatar-ring" : ""} ${seen ? "seen" : ""}`}
       style={{ width: size, height: size }}
     >
-      <Photo src={user.avatar} alt={`${user.username}'s profile photo`} eager />
+      {user.avatar ? (
+        <Photo
+          src={user.avatar}
+          alt={`${user.username}'s profile photo`}
+          eager
+        />
+      ) : (
+        <span
+          className="avatar-initials"
+          aria-label={`${user.username}'s profile`}
+        >
+          {user.username.slice(0, 2).toUpperCase()}
+        </span>
+      )}
     </span>
   );
 }

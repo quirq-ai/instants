@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { useData } from "@/components/data-provider";
 import { Search, Heart, X, ImagePlus, Check, Copy } from "lucide-react";
 import {
   Dialog,
@@ -13,7 +14,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { Avatar, Photo, Verified, getUser, mock, Post } from "./shared";
+import { Avatar, Photo, Verified, Post } from "./shared";
 import { toast } from "sonner";
 import { InstantResponse } from "./instant-response";
 import { type QueueItem } from "@/lib/data";
@@ -32,9 +33,10 @@ export function SidePanel({
   attention: QueueItem[];
   onOpenQueue: (id: string) => void;
 }) {
+  const { data, getUser } = useData();
   const [query, setQuery] = useState("");
   const pending = attention.filter((item) => !item.resolved);
-  const users = mock.users.filter((user) =>
+  const users = data.users.filter((user) =>
     `${user.username} ${user.name}`.toLowerCase().includes(query.toLowerCase()),
   );
   return (
@@ -132,7 +134,7 @@ export function SidePanel({
                       onOpenQueue(item.id);
                     }}
                   >
-                    Reply
+                    {item.readOnly ? "View" : "Reply"}
                   </button>
                 </div>
               );
@@ -172,6 +174,7 @@ export function PostDialog({
   expiresAt?: number;
   onRespond: (option: string) => void;
 }) {
+  const { getUser } = useData();
   const [text, setText] = useState("");
   useEffect(() => {
     setText("");
@@ -191,14 +194,24 @@ export function PostDialog({
           {post.alt}. Read and add comments.
         </DialogDescription>
         <div className="dialog-photo">
-          <MotionCarousel
-            key={post.id}
-            images={post.images}
-            alt={post.alt}
-            onDoubleTap={() => {
-              if (!liked) onLike();
-            }}
-          />
+          {post.images.length ? (
+            <MotionCarousel
+              key={post.id}
+              images={post.images}
+              alt={post.alt}
+              onDoubleTap={() => {
+                if (!post.source?.readOnly && !liked) onLike();
+              }}
+            />
+          ) : (
+            <div className="agent-dialog-body">
+              <span className="agent-source-label">
+                {post.source?.label ?? "Your timeline"}
+              </span>
+              <h2>{post.alt || "Activity"}</h2>
+              <div>{post.body || post.caption}</div>
+            </div>
+          )}
         </div>
         <div className="dialog-discussion">
           <header>
@@ -207,7 +220,7 @@ export function PostDialog({
             {user.verified && <Verified />}
           </header>
           <div className="dialog-comments">
-            {post.instant && (
+            {post.instant && !post.source?.readOnly && (
               <InstantResponse
                 instant={post.instant}
                 selected={response}
@@ -215,13 +228,22 @@ export function PostDialog({
                 onRespond={onRespond}
               />
             )}
-            <div className="comment-row">
-              <Avatar user={user} size={32} />
-              <p>
-                <strong>{user.username}</strong> {post.caption}
-                <span>{post.time}</span>
-              </p>
-            </div>
+            {post.source?.readOnly ? (
+              <div className="private-notes-heading">
+                <h3>Private notes</h3>
+                {!post.comments.length && !comments.length && (
+                  <p>Add a thought or a next step for your next visit.</p>
+                )}
+              </div>
+            ) : (
+              <div className="comment-row">
+                <Avatar user={user} size={32} />
+                <p>
+                  <strong>{user.username}</strong> {post.caption}
+                  <span>{post.time}</span>
+                </p>
+              </div>
+            )}
             {[...post.comments, ...comments].map((comment, index) => (
               <div className="comment-row" key={index}>
                 <Avatar user={getUser(comment.userId)} size={32} />
@@ -229,27 +251,41 @@ export function PostDialog({
                   <strong>{getUser(comment.userId).username}</strong>{" "}
                   {comment.text}
                   <span>
-                    {index < post.comments.length ? "1h" : "Just now"} · Reply
+                    {post.source?.readOnly
+                      ? index < post.comments.length
+                        ? "Source conversation"
+                        : "Private note · Just now"
+                      : index < post.comments.length
+                        ? "1h · Reply"
+                        : "Just now · Reply"}
                   </span>
                 </p>
-                <Heart size={12} />
+                {!post.source?.readOnly && <Heart size={12} />}
               </div>
             ))}
           </div>
-          <div className="dialog-likes">
-            <button
-              className={`icon-button ${liked ? "liked" : ""}`}
-              aria-label={liked ? "Unlike post" : "Like post"}
-              aria-pressed={liked}
-              onClick={onLike}
-            >
-              <Heart fill={liked ? "currentColor" : "none"} />
-            </button>
-            <strong>
-              {(post.likes + (liked ? 1 : 0)).toLocaleString()} likes
-            </strong>
-            <span>{post.time} ago</span>
-          </div>
+          {!post.source?.readOnly && (
+            <div className="dialog-likes">
+              <button
+                className={`icon-button ${liked ? "liked" : ""}`}
+                aria-label={liked ? "Unlike post" : "Like post"}
+                aria-pressed={liked}
+                onClick={onLike}
+              >
+                <Heart fill={liked ? "currentColor" : "none"} />
+              </button>
+              <strong>
+                {(post.likes + (liked ? 1 : 0)).toLocaleString()} likes
+              </strong>
+              <span>{post.time} ago</span>
+            </div>
+          )}
+          {post.source?.readOnly && (
+            <p className="source-readonly-note">
+              Private notes stay in activity.jsonl. Nothing is sent to{" "}
+              {post.source.label}.
+            </p>
+          )}
           <form
             className="dialog-comment-form"
             onSubmit={(event) => {
@@ -258,8 +294,14 @@ export function PostDialog({
             }}
           >
             <input
-              aria-label="Write a comment"
-              placeholder="Add a comment…"
+              aria-label={
+                post.source?.readOnly
+                  ? "Write a private note"
+                  : "Write a comment"
+              }
+              placeholder={
+                post.source?.readOnly ? "Add a private note." : "Add a comment."
+              }
               value={text}
               maxLength={4000}
               onChange={(event) => setText(event.target.value)}
@@ -269,7 +311,7 @@ export function PostDialog({
               className="text-action"
               disabled={!text.trim()}
             >
-              Post
+              {post.source?.readOnly ? "Save note" : "Post"}
             </button>
           </form>
         </div>
@@ -287,6 +329,7 @@ export function CreateDialog({
   onClose: () => void;
   onCreate: (image: string, caption: string) => boolean;
 }) {
+  const { data } = useData();
   const [image, setImage] = useState("");
   const [caption, setCaption] = useState("");
   const file = useRef<HTMLInputElement>(null);
@@ -355,9 +398,11 @@ export function CreateDialog({
             >
               Select from computer
             </button>
-            <span>or use a sample from your team’s work</span>
+            {!!data.explore.length && (
+              <span>or use a preview from your timeline</span>
+            )}
             <div className="sample-photos">
-              {mock.explore.slice(0, 3).map((item) => (
+              {data.explore.slice(0, 3).map((item) => (
                 <button
                   key={item.image}
                   aria-label={`Select ${item.alt}`}
@@ -384,8 +429,8 @@ export function CreateDialog({
               <Photo src={image} alt="Work preview to share" />
             </div>
             <div className="create-caption">
-              <Avatar user={mock.currentUser} size={30} />
-              <strong>{mock.currentUser.username}</strong>
+              <Avatar user={data.currentUser} size={30} />
+              <strong>{data.currentUser.username}</strong>
               <textarea
                 maxLength={2200}
                 placeholder="What are you working on, and what needs a reply?"
@@ -427,6 +472,7 @@ export function ShareDialog({
   onClose: () => void;
   onSend: (ids: string[], post: Post) => boolean;
 }) {
+  const { data } = useData();
   const [selected, setSelected] = useState<string[]>([]);
   const [query, setQuery] = useState("");
   useEffect(() => {
@@ -454,48 +500,48 @@ export function ShareDialog({
             onChange={(event) => setQuery(event.target.value)}
           />
         </label>
-        <div className="share-people">
-          {mock.users
-            .filter((user) =>
-              user.name.toLowerCase().includes(query.toLowerCase()),
-            )
-            .slice(0, 6)
-            .map((user) => (
-              <button
-                className="search-result"
-                key={user.id}
-                onClick={() =>
-                  setSelected(
-                    selected.includes(user.id)
-                      ? selected.filter((id) => id !== user.id)
-                      : [...selected, user.id],
-                  )
-                }
-              >
-                <Avatar user={user} size={44} />
-                <span>
-                  <strong>{user.name}</strong>
-                  <span>{user.username}</span>
-                </span>
-                <i className={selected.includes(user.id) ? "checked" : ""}>
-                  {selected.includes(user.id) && <Check size={14} />}
-                </i>
-              </button>
-            ))}
-        </div>
+        {!post?.source?.readOnly && (
+          <div className="share-people">
+            {data.users
+              .filter((user) =>
+                user.name.toLowerCase().includes(query.toLowerCase()),
+              )
+              .slice(0, 6)
+              .map((user) => (
+                <button
+                  className="search-result"
+                  key={user.id}
+                  onClick={() =>
+                    setSelected(
+                      selected.includes(user.id)
+                        ? selected.filter((id) => id !== user.id)
+                        : [...selected, user.id],
+                    )
+                  }
+                >
+                  <Avatar user={user} size={44} />
+                  <span>
+                    <strong>{user.name}</strong>
+                    <span>{user.username}</span>
+                  </span>
+                  <i className={selected.includes(user.id) ? "checked" : ""}>
+                    {selected.includes(user.id) && <Check size={14} />}
+                  </i>
+                </button>
+              ))}
+          </div>
+        )}
         <div className="share-footer">
           <button
             className="secondary-button"
             onClick={async () => {
               try {
-                if (!mock.posts.some((item) => item.id === post?.id)) {
-                  toast(
-                    "This post is only available in your current preview session.",
-                  );
+                if (!data.posts.some((item) => item.id === post?.id)) {
+                  toast("This post is only available in this local timeline.");
                   return;
                 }
                 await navigator.clipboard.writeText(
-                  `${window.location.origin}/?post=${post?.id}`,
+                  `${window.location.origin}/?post=${encodeURIComponent(post?.id ?? "")}`,
                 );
                 toast("Link copied");
               } catch {
@@ -505,19 +551,21 @@ export function ShareDialog({
           >
             <Copy size={16} /> Copy link
           </button>
-          <button
-            className="primary-button"
-            disabled={!selected.length}
-            onClick={() => {
-              if (!post || !onSend(selected, post)) return;
-              toast(
-                `Shared with ${selected.length} ${selected.length === 1 ? "person" : "people"} in this session`,
-              );
-              onClose();
-            }}
-          >
-            Send
-          </button>
+          {!post?.source?.readOnly && (
+            <button
+              className="primary-button"
+              disabled={!selected.length}
+              onClick={() => {
+                if (!post || !onSend(selected, post)) return;
+                toast(
+                  `Shared with ${selected.length} ${selected.length === 1 ? "person" : "people"} in this session`,
+                );
+                onClose();
+              }}
+            >
+              Send
+            </button>
+          )}
         </div>
       </DialogContent>
     </Dialog>

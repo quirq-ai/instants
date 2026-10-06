@@ -13,7 +13,7 @@ export type SessionView = {
   attention: QueueItem[];
 };
 
-/** A deterministic projection: fixtures + activity are the entire application state. */
+/** A deterministic projection of the current timeline and private activity. */
 export function projectSession(
   seed: SeedData,
   session: SessionDocument | null,
@@ -36,15 +36,17 @@ export function projectSession(
     })),
     attention: seed.attention.map((item) => ({
       ...item,
-      resolved: false,
+      resolved: item.resolved ?? false,
       replies: [],
     })),
   };
   if (!session) return state;
   for (const post of state.allPosts)
     if (post.instant)
-      state.deadlines[post.id] =
-        Date.parse(session.createdAt) + post.instant.expiresInMinutes * 60_000;
+      state.deadlines[post.id] = post.expiresAt
+        ? Date.parse(post.expiresAt)
+        : Date.parse(post.occurredAt || session.createdAt) +
+          post.instant.expiresInMinutes * 60_000;
   function toggle(values: string[], id: string, enabled: boolean) {
     return enabled
       ? [...new Set([...values, id])]
@@ -54,11 +56,17 @@ export function projectSession(
     if (state.allPosts.some((post) => post.id === postId))
       (state.comments[postId] ??= []).push({ userId: "you", text });
   }
-  function message(userId: string, text: string) {
-    let thread = state.threads.find((item) => item.userId === userId);
+  function message(userId: string, text: string, threadId?: string) {
+    let thread = state.threads.find((item) =>
+      threadId
+        ? (item.id || item.userId) === threadId
+        : item.userId === userId && !item.readOnly,
+    );
+    if (thread?.readOnly) return;
     if (!thread) {
       thread = {
         userId,
+        ...(threadId ? { id: threadId } : {}),
         preview: "",
         time: "now",
         unread: false,
@@ -91,6 +99,7 @@ export function projectSession(
           (post) => post.id === event.data.postId,
         );
         if (
+          !post?.source?.readOnly &&
           post?.instant?.options.some(
             (option) => option.id === event.data.optionId,
           ) &&
@@ -100,12 +109,17 @@ export function projectSession(
         break;
       }
       case "post.comment":
-        comment(event.data.postId, event.data.text);
+        if (
+          !state.allPosts.find((post) => post.id === event.data.postId)?.source
+            ?.readOnly
+        )
+          comment(event.data.postId, event.data.text);
         break;
       case "message.send":
-        message(event.data.userId, event.data.text);
+        message(event.data.userId, event.data.text, event.data.threadId);
         for (const item of state.attention)
           if (
+            !item.readOnly &&
             item.kind === "dm" &&
             item.userId === event.data.userId &&
             !item.resolved
@@ -115,8 +129,10 @@ export function projectSession(
           }
         break;
       case "message.read": {
-        const thread = state.threads.find(
-          (thread) => thread.userId === event.data.userId,
+        const thread = state.threads.find((thread) =>
+          event.data.threadId
+            ? (thread.id || thread.userId) === event.data.threadId
+            : thread.userId === event.data.userId,
         );
         if (thread) thread.unread = false;
         break;
@@ -125,8 +141,8 @@ export function projectSession(
         const item = state.attention.find(
           (item) => item.id === event.data.itemId,
         );
-        if (!item) break;
-        // Route from trusted fixture context rather than client-supplied targets.
+        if (!item || item.readOnly) break;
+        // Route from the loaded timeline rather than client-supplied targets.
         if (item.kind !== "dm" && item.postId)
           comment(item.postId, event.data.text);
         else message(item.userId, event.data.text);

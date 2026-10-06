@@ -1,428 +1,595 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  appendActivity,
-  createSessionDocument,
-  MAX_BATCH_EVENTS,
-  MAX_EVENTS,
-  parseActivityBatch,
-  parseSessionDocument,
-} from "@/engine/schema.mjs";
+  parseActivityEntry,
+  parseTimelineEntry,
+  parseLogEntries,
+} from "@/engine/log-schema.mjs";
+import { seedTimeline } from "@/engine/timeline.mjs";
+import {
+  activityEntry,
+  assertActivityAllowed,
+  jsonl,
+  mergeEntries,
+  mirrorCreatedPosts,
+  prepareImport,
+  projectWorkspace,
+  type WorkspaceLogs,
+} from "@/engine/workspace";
+import type { ActivityInput } from "@/engine/types";
 import type {
-  Activity,
-  ActivityInput,
-  SessionDocument,
-  SessionResult,
-} from "@/engine/types";
-import { projectSession } from "@/engine/projection";
-import { mock } from "@/lib/data";
-const DEVICE_KEY = "instants-session-v1";
-const outboxKey = (id: string) => "instants-outbox:" + id;
+  ActivityEntry,
+  LogDiagnostic,
+  TimelineEntry,
+} from "@/engine/log-types";
+import type { SeedData } from "@/lib/data";
+
+const KEYS = {
+  timeline: "instants-timeline-v1",
+  activity: "instants-activity-v1",
+};
 type Mode = "loading" | "file" | "browser" | "unavailable";
 type Status = "loading" | "saved" | "saving" | "error";
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-function responseMessage(value: unknown, fallback: string) {
-  return isRecord(value) && typeof value.message === "string"
-    ? value.message
-    : fallback;
-}
-function parseResult(value: unknown): SessionResult {
-  if (isRecord(value) && value.mode === "file")
-    return { mode: "file", session: parseSessionDocument(value.session) };
-  if (isRecord(value) && value.mode === "browser" && value.session === null)
-    return { mode: "browser", session: null };
-  throw new Error(
-    "The session service returned an invalid response. Please retry.",
-  );
-}
-function appendAll(document: SessionDocument, events: Activity[]) {
-  let next = document;
-  for (let index = 0; index < events.length; index += MAX_BATCH_EVENTS)
-    next = appendActivity(next, events.slice(index, index + MAX_BATCH_EVENTS));
-  return next;
-}
-function parseOutbox(raw: string): Activity[] {
-  const value: unknown = JSON.parse(raw);
-  if (!Array.isArray(value) || value.length > MAX_EVENTS)
-    throw new Error(
-      "The saved outbox could not be read. Export a backup before clearing it.",
-    );
-  const events: Activity[] = [];
-  for (let index = 0; index < value.length; index += MAX_BATCH_EVENTS)
-    events.push(
-      ...parseActivityBatch({
-        events: value.slice(index, index + MAX_BATCH_EVENTS),
-      }),
-    );
-  return events;
-}
-/** Keep persisted order, then retain missing events from this tab.
- * A reset or account change must never blend different session identities. */
-function mergeBrowserSession(stored: SessionDocument, local: SessionDocument) {
+const empty: WorkspaceLogs = {
+  profileId: "",
+  timeline: [],
+  activity: [],
+  diagnostics: [],
+  revision: "",
+};
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+const message = (cause: unknown) =>
+  cause instanceof Error
+    ? cause.message
+    : "Your logs could not be saved. Retry or export a backup.";
+function parseSnapshot(value: unknown): WorkspaceLogs {
   if (
-    stored.id !== local.id ||
-    stored.userId !== local.userId ||
-    stored.createdAt !== local.createdAt
+    !isRecord(value) ||
+    value.mode !== "file" ||
+    typeof value.profileId !== "string" ||
+    !Array.isArray(value.timeline) ||
+    !Array.isArray(value.activity) ||
+    !Array.isArray(value.diagnostics) ||
+    typeof value.revision !== "string"
   )
-    throw new Error(
-      "Your device session changed in another tab. Export a backup, then reload this tab.",
-    );
-  const known = new Map(stored.activity.map((event) => [event.id, event]));
-  const missing: Activity[] = [];
-  for (const event of local.activity) {
-    const existing = known.get(event.id);
-    if (!existing) missing.push(event);
-    else if (JSON.stringify(existing) !== JSON.stringify(event))
-      throw new Error(
-        "Conflicting activity was found on this device. Export a backup before continuing.",
-      );
-  }
-  return appendAll(stored, missing);
+    throw new Error("The local engine returned an invalid snapshot.");
+  return {
+    profileId: value.profileId,
+    timeline: value.timeline.map(parseTimelineEntry),
+    activity: value.activity.map(parseActivityEntry),
+    diagnostics: value.diagnostics as LogDiagnostic[],
+    revision: value.revision,
+  };
 }
-function latestBrowserSession(local: SessionDocument) {
-  const raw = localStorage.getItem(DEVICE_KEY);
-  if (!raw)
+async function responseValue(response: Response) {
+  const value: unknown = await response.json();
+  if (!response.ok)
     throw new Error(
-      "Your device session was cleared in another tab. Export a backup, then reload this tab.",
+      isRecord(value) && typeof value.message === "string"
+        ? value.message
+        : "The local engine is unavailable. Retry or export your activity before closing this tab.",
     );
-  return mergeBrowserSession(parseSessionDocument(JSON.parse(raw)), local);
+  return value;
 }
-/** The only UI boundary for activity, projection, and persistence. */
+function profileEntry(profileId: string): ActivityEntry {
+  return parseActivityEntry({
+    v: 1,
+    id: crypto.randomUUID(),
+    at: new Date().toISOString(),
+    type: "profile.created",
+    targetId: profileId,
+    data: { profileId },
+  });
+}
+function browserSnapshot(): WorkspaceLogs {
+  const timeline = parseLogEntries(
+    localStorage.getItem(KEYS.timeline) || "",
+    "timeline",
+  );
+  const activity = parseLogEntries(
+    localStorage.getItem(KEYS.activity) || "",
+    "activity",
+  );
+  const profile = activity.entries.find(
+    (entry) => entry.type === "profile.created",
+  );
+  return {
+    profileId:
+      profile?.type === "profile.created" ? profile.data.profileId : "",
+    timeline: timeline.entries,
+    activity: activity.entries,
+    diagnostics: [...timeline.diagnostics, ...activity.diagnostics],
+    revision: "",
+  };
+}
+function latestBrowser(base: WorkspaceLogs) {
+  const latest = browserSnapshot();
+  if (!latest.profileId || latest.profileId !== base.profileId)
+    throw new Error(
+      "Your profile changed in another tab. Export a backup, then reload.",
+    );
+  if (latest.diagnostics.length) throw new Error(latest.diagnostics[0].message);
+  return {
+    ...latest,
+    timeline: mergeEntries(latest.timeline, base.timeline),
+    activity: mergeEntries(latest.activity, base.activity),
+  };
+}
+function writeBrowser(
+  key: keyof typeof KEYS,
+  entries: TimelineEntry[] | ActivityEntry[],
+) {
+  localStorage.setItem(KEYS[key], jsonl(entries));
+}
+function download(text: string, name: string) {
+  const url = URL.createObjectURL(
+    new Blob([text], { type: "application/x-ndjson" }),
+  );
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = name;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/** One client boundary: screens see replayed records and never read fixtures or files. */
 export function useSession() {
-  const [session, setSession] = useState<SessionDocument | null>(null);
+  const [logs, setLogs] = useState<WorkspaceLogs>(empty);
   const [mode, setMode] = useState<Mode>("loading");
   const [status, setStatus] = useState<Status>("loading");
   const [error, setError] = useState("");
-  const current = useRef<SessionDocument | null>(null);
+  const current = useRef<WorkspaceLogs>(empty);
   const currentMode = useRef<Mode>("loading");
-  const pending = useRef<Activity[]>([]);
-  const recoveredRaw = useRef<string | null>(null);
+  // Pending network writes exist only in memory. Durable activity lives in the two logs.
+  const pending = useRef<ActivityEntry[][]>([]);
   const alive = useRef(false);
-  const generation = useRef(0);
-  const openingRequest = useRef<AbortController | null>(null);
-  const savingRequest = useRef<AbortController | null>(null);
-  const publish = useCallback((next: SessionDocument) => {
-    if (!alive.current) return;
-    current.current = next;
-    setSession(next);
-  }, []);
-  const fail = useCallback((message: string) => {
+  const epoch = useRef(0);
+  const writing = useRef<AbortController | null>(null);
+  const reading = useRef<AbortController | null>(null);
+  const importing = useRef(false);
+  const importRequest = useRef<AbortController | null>(null);
+  const fail = useCallback((cause: unknown) => {
     if (alive.current) {
-      setError(message);
+      setError(message(cause));
       setStatus("error");
     }
   }, []);
+  const publish = useCallback((next: WorkspaceLogs) => {
+    current.current = next;
+    if (alive.current) setLogs(next);
+  }, []);
+  const accept = useCallback(
+    (next: WorkspaceLogs) => {
+      publish(next);
+      if (next.diagnostics.length)
+        fail(
+          new Error(
+            next.diagnostics[0].message +
+              " Export the original logs before repairing them.",
+          ),
+        );
+      else if (alive.current) {
+        setStatus(pending.current.length ? "saving" : "saved");
+        setError("");
+      }
+    },
+    [fail, publish],
+  );
   const flush = useCallback(async () => {
     if (
-      savingRequest.current ||
+      writing.current ||
+      importing.current ||
       currentMode.current !== "file" ||
-      !current.current ||
       !pending.current.length
     )
       return;
     const controller = new AbortController();
-    savingRequest.current = controller;
-    const ownGeneration = generation.current;
-    const sessionId = current.current.id;
+    writing.current = controller;
+    const generation = epoch.current;
     const active = () =>
       alive.current &&
-      !controller.signal.aborted &&
-      generation.current === ownGeneration;
+      epoch.current === generation &&
+      !controller.signal.aborted;
     setStatus("saving");
     setError("");
     try {
       while (pending.current.length && active()) {
-        // One event per request bounds payloads containing image data.
-        const batch = pending.current.slice(0, 1);
-        const response = await fetch("/api/session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ events: batch }),
-          signal: controller.signal,
-        });
-        const payload: unknown = await response.json();
+        const entries = pending.current[0];
+        const value = await responseValue(
+          await fetch("/api/session", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Instants-Profile": current.current.profileId,
+            },
+            body: JSON.stringify({ log: "activity", entries }),
+            signal: controller.signal,
+          }),
+        );
         if (!active()) return;
-        if (!response.ok)
+        const next = parseSnapshot(value);
+        if (next.profileId !== current.current.profileId)
           throw new Error(
-            responseMessage(
-              payload,
-              "Could not save your activity. Retry or export a backup.",
-            ),
+            "Your profile changed while saving. Export your activity and reload.",
           );
-        const result = parseResult(payload);
-        if (result.mode !== "file" || result.session.id !== sessionId) {
-          currentMode.current = "unavailable";
-          setMode("unavailable");
+        const acknowledged = new Set(next.activity.map((entry) => entry.id));
+        if (!entries.every((entry) => acknowledged.has(entry.id)))
           throw new Error(
-            "Your session changed while saving. Export a backup, then reload this tab.",
+            "The engine did not acknowledge the entire action. Retry before closing this tab.",
           );
-        }
-        const acknowledged = new Set(batch.map((event) => event.id));
-        const remaining = pending.current.filter(
-          (event) => !acknowledged.has(event.id),
-        );
-        const saved = appendAll(result.session, remaining);
-        pending.current = remaining;
-        publish(saved);
-        try {
-          if (remaining.length)
-            localStorage.setItem(
-              outboxKey(sessionId),
-              JSON.stringify(remaining),
-            );
-          else localStorage.removeItem(outboxKey(sessionId));
-        } catch {
-          /* Server acknowledgement remains the source of truth. */
-        }
+        pending.current.shift();
+        next.activity = mergeEntries(next.activity, pending.current.flat());
+        publish(next);
       }
-      if (active()) {
-        setStatus("saved");
-        setError("");
-      }
+      if (active()) accept(current.current);
     } catch (cause) {
-      if (active())
-        fail(
-          cause instanceof Error
-            ? cause.message
-            : "Could not save your activity. Retry or export a backup.",
-        );
+      if (active()) fail(cause);
     } finally {
-      if (savingRequest.current === controller) savingRequest.current = null;
+      if (writing.current === controller) writing.current = null;
     }
-  }, [fail, publish]);
-  const initialize = useCallback(async () => {
-    openingRequest.current?.abort();
-    savingRequest.current?.abort();
-    savingRequest.current = null;
-    const controller = new AbortController();
-    openingRequest.current = controller;
-    const ownGeneration = ++generation.current;
-    const active = () =>
-      alive.current &&
-      !controller.signal.aborted &&
-      generation.current === ownGeneration;
-    if (active()) {
-      setStatus("loading");
-      setError("");
-    }
-    try {
-      const response = await fetch("/api/session", {
-        cache: "no-store",
-        signal: controller.signal,
-      });
-      const payload: unknown = await response.json();
-      if (!active()) return;
-      if (!response.ok)
-        throw new Error(
-          responseMessage(
-            payload,
-            "Your session could not be opened. Please retry.",
-          ),
+  }, [accept, fail, publish]);
+
+  const load = useCallback(
+    async (initial = false) => {
+      if (
+        writing.current ||
+        importing.current ||
+        reading.current ||
+        pending.current.length
+      )
+        return;
+      const controller = new AbortController();
+      reading.current = controller;
+      const generation = epoch.current;
+      const active = () =>
+        alive.current &&
+        epoch.current === generation &&
+        !controller.signal.aborted;
+      try {
+        if (currentMode.current === "browser") {
+          const next = latestBrowser(current.current);
+          const timeline = mirrorCreatedPosts(next.timeline, next.activity);
+          if (jsonl(timeline) !== localStorage.getItem(KEYS.timeline))
+            writeBrowser("timeline", timeline);
+          if (jsonl(next.activity) !== localStorage.getItem(KEYS.activity))
+            writeBrowser("activity", next.activity);
+          accept({ ...next, timeline });
+          return;
+        }
+        const query =
+          !initial && current.current.revision
+            ? "?since=" + encodeURIComponent(current.current.revision)
+            : "";
+        const value = await responseValue(
+          await fetch("/api/session" + query, {
+            cache: "no-store",
+            signal: controller.signal,
+          }),
         );
-      const result = parseResult(payload);
-      let next: SessionDocument;
-      let recovered: Activity[] = [];
-      if (result.mode === "file") {
-        next = result.session;
-        let raw: string | null = null;
-        try {
-          raw = localStorage.getItem(outboxKey(next.id));
-        } catch {
-          /* File sessions work when browser storage is disabled. */
+        if (!active() || pending.current.length || importing.current) return;
+        if (isRecord(value) && value.unchanged === true) {
+          accept(current.current);
+          return;
         }
-        if (raw) {
-          recoveredRaw.current = raw;
-          recovered = parseOutbox(raw);
-          next = appendAll(next, recovered);
+        if (isRecord(value) && value.mode === "browser") {
+          if (
+            localStorage.getItem(KEYS.timeline) === null &&
+            localStorage.getItem(KEYS.activity) === null
+          ) {
+            const seed = (await import("@/data/mock.json")).default as SeedData;
+            if (!active()) return;
+            const profile = profileEntry(crypto.randomUUID());
+            writeBrowser("timeline", seedTimeline(seed, profile.at));
+            writeBrowser("activity", [profile]);
+          }
+          let next = browserSnapshot();
+          if (!next.profileId && !next.diagnostics.length) {
+            next = { ...next, profileId: crypto.randomUUID() };
+            next.activity = [profileEntry(next.profileId), ...next.activity];
+            writeBrowser("activity", next.activity);
+          }
+          currentMode.current = "browser";
+          setMode("browser");
+          accept(next);
+        } else {
+          const next = parseSnapshot(value);
+          if (
+            current.current.profileId &&
+            next.profileId !== current.current.profileId
+          )
+            throw new Error("Your local profile changed. Reload to open it.");
+          currentMode.current = "file";
+          setMode("file");
+          accept(next);
         }
-      } else {
-        const raw = localStorage.getItem(DEVICE_KEY);
-        recoveredRaw.current = raw;
-        next = raw
-          ? parseSessionDocument(JSON.parse(raw))
-          : createSessionDocument(crypto.randomUUID());
-        if (!raw) localStorage.setItem(DEVICE_KEY, JSON.stringify(next));
+      } catch (cause) {
+        if (active()) {
+          if (!current.current.profileId) {
+            currentMode.current = "unavailable";
+            setMode("unavailable");
+          }
+          fail(cause);
+        }
+      } finally {
+        if (reading.current === controller) reading.current = null;
       }
-      if (!active()) return;
-      pending.current = recovered;
-      currentMode.current = result.mode;
-      setMode(result.mode);
-      publish(next);
-      setStatus("saved");
-      recoveredRaw.current = null;
-      if (pending.current.length) void flush();
-    } catch (cause) {
-      if (!active()) return;
-      currentMode.current = "unavailable";
-      setMode("unavailable");
-      fail(
-        cause instanceof Error
-          ? cause.message
-          : "Your session could not be opened. Please retry.",
-      );
-    } finally {
-      if (openingRequest.current === controller) openingRequest.current = null;
-    }
-  }, [fail, flush, publish]);
+    },
+    [accept, fail],
+  );
+
   useEffect(() => {
     alive.current = true;
-    void initialize();
-    const online = () => {
-      void flush();
+    const generation = epoch.current;
+    void load(true);
+    const refresh = () => {
+      if (pending.current.length) void flush();
+      else void load();
     };
     const storage = (event: StorageEvent) => {
       if (
-        event.storageArea !== localStorage ||
-        (event.key !== DEVICE_KEY && event.key !== null) ||
-        currentMode.current !== "browser" ||
-        !current.current
+        currentMode.current === "browser" &&
+        (event.key === null || Object.values(KEYS).includes(event.key))
       )
-        return;
-      try {
-        // Read current storage, since the delivered event may already be stale.
-        const next = latestBrowserSession(current.current);
-        const serialized = JSON.stringify(next);
-        if (localStorage.getItem(DEVICE_KEY) !== serialized)
-          localStorage.setItem(DEVICE_KEY, serialized);
-        publish(next);
-        setStatus("saved");
-        setError("");
-      } catch (cause) {
-        currentMode.current = "unavailable";
-        setMode("unavailable");
-        fail(
-          cause instanceof Error
-            ? cause.message
-            : "The device session could not be read. Export a backup before continuing.",
-        );
+        refresh();
+    };
+    const beforeUnload = (event: BeforeUnloadEvent) => {
+      if (pending.current.length || importing.current) {
+        event.preventDefault();
+        event.returnValue = "";
       }
     };
-    window.addEventListener("online", online);
+    const timer = window.setInterval(() => {
+      if (
+        document.visibilityState === "visible" &&
+        currentMode.current === "file" &&
+        !pending.current.length
+      )
+        void load();
+    }, 5000);
+    window.addEventListener("focus", refresh);
+    window.addEventListener("online", refresh);
     window.addEventListener("storage", storage);
+    window.addEventListener("beforeunload", beforeUnload);
     return () => {
       alive.current = false;
-      generation.current += 1;
-      openingRequest.current?.abort();
-      savingRequest.current?.abort();
-      openingRequest.current = null;
-      savingRequest.current = null;
-      window.removeEventListener("online", online);
+      epoch.current = generation + 1;
+      reading.current?.abort();
+      writing.current?.abort();
+      importRequest.current?.abort();
+      reading.current = null;
+      writing.current = null;
+      clearInterval(timer);
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("online", refresh);
       window.removeEventListener("storage", storage);
+      window.removeEventListener("beforeunload", beforeUnload);
     };
-  }, [initialize, flush, fail, publish]);
-  const recordBatch = useCallback(
-    (inputs: ActivityInput[]): boolean => {
-      const document = current.current;
-      if (!document || !["browser", "file"].includes(currentMode.current)) {
-        fail(
-          "Your session is not ready. Retry opening it before making changes.",
-        );
-        return false;
-      }
+  }, [flush, load]);
+
+  const append = useCallback(
+    (entries: ActivityEntry[]): boolean => {
       try {
-        const at = new Date().toISOString();
-        const events = parseActivityBatch({
-          events: inputs.map((input) => ({
-            ...input,
-            id: crypto.randomUUID(),
-            at,
-          })),
-        });
+        if (
+          !["file", "browser"].includes(currentMode.current) ||
+          !current.current.profileId
+        )
+          throw new Error("Your logs are still opening. Please retry.");
+        if (importing.current)
+          throw new Error("Wait for the timeline import to finish.");
+        if (current.current.diagnostics.length)
+          throw new Error(
+            "The logs need repair. Export them before making changes.",
+          );
+        const validated = entries.map(parseActivityEntry);
         const base =
           currentMode.current === "browser"
-            ? latestBrowserSession(document)
-            : document;
-        // Validate the whole action before publishing or enqueuing any part.
-        const next = appendActivity(base, events);
+            ? latestBrowser(current.current)
+            : current.current;
+        assertActivityAllowed(base.timeline, validated);
+        reading.current?.abort();
+        reading.current = null;
+        const next = {
+          ...base,
+          activity: mergeEntries(base.activity, validated),
+        };
         if (currentMode.current === "browser") {
-          // A failed quota write must not appear as a successful reply.
-          localStorage.setItem(DEVICE_KEY, JSON.stringify(next));
+          // Write the complete action before publishing, including multi-recipient shares.
+          writeBrowser("activity", next.activity);
           publish(next);
-          setStatus("saved");
-          setError("");
-        } else {
-          const queued = [...pending.current, ...events];
           try {
-            localStorage.setItem(outboxKey(next.id), JSON.stringify(queued));
-          } catch {
-            /* Attempt the server write and show Saving until acknowledged. */
-          }
-          pending.current = queued;
+            const timeline = mirrorCreatedPosts(next.timeline, next.activity);
+            if (timeline.length !== next.timeline.length)
+              writeBrowser("timeline", timeline);
+            accept({ ...next, timeline });
+          } catch (cause) {
+            fail(cause);
+          } // Durable intent can recover a missing mirror on refresh.
+        } else {
+          pending.current.push(validated);
           publish(next);
           setStatus("saving");
           void flush();
         }
         return true;
       } catch (cause) {
-        fail(
-          cause instanceof Error
-            ? cause.message
-            : "Activity could not be saved. Export your session to keep a backup.",
-        );
+        fail(cause);
         return false;
       }
     },
-    [fail, flush, publish],
+    [accept, fail, flush, publish],
+  );
+  const recordBatch = useCallback(
+    (inputs: ActivityInput[]) => {
+      try {
+        return append(inputs.map(activityEntry));
+      } catch (cause) {
+        fail(cause);
+        return false;
+      }
+    },
+    [append, fail],
   );
   const record = useCallback(
     (input: ActivityInput) => recordBatch([input]),
     [recordBatch],
   );
-  const retry = () => {
-    if (!current.current || currentMode.current === "unavailable") {
-      void initialize();
-      return;
-    }
-    if (currentMode.current === "file") {
-      if (pending.current.length) void flush();
-      else {
-        setStatus("saved");
+  const markRead = useCallback(
+    (targetId: string) => {
+      const latest = [...current.current.activity]
+        .reverse()
+        .find(
+          (entry) => entry.targetId === targetId && entry.type === "item.read",
+        );
+      if (latest?.type === "item.read" && latest.data.read !== false)
+        return true;
+      return append([
+        {
+          v: 1,
+          id: crypto.randomUUID(),
+          at: new Date().toISOString(),
+          type: "item.read",
+          targetId,
+          data: { read: true },
+        },
+      ]);
+    },
+    [append],
+  );
+  const addNote = useCallback(
+    (targetId: string, text: string) =>
+      append([
+        {
+          v: 1,
+          id: crypto.randomUUID(),
+          at: new Date().toISOString(),
+          type: "note.added",
+          targetId,
+          data: { text },
+        },
+      ]),
+    [append],
+  );
+  const importTimeline = useCallback(
+    async (
+      text: string,
+      format: "timeline" | "codex" | "claude",
+      replace: boolean,
+    ) => {
+      if (importing.current) return false;
+      const controller = new AbortController();
+      const generation = epoch.current;
+      const active = () =>
+        alive.current &&
+        generation === epoch.current &&
+        !controller.signal.aborted;
+      try {
+        if (
+          !["file", "browser"].includes(currentMode.current) ||
+          !current.current.profileId
+        )
+          throw new Error("Open your logs before importing.");
+        if (pending.current.length || writing.current)
+          throw new Error(
+            "Save or retry pending activity before importing a timeline.",
+          );
+        if (current.current.diagnostics.length)
+          throw new Error(
+            "Export and repair the current logs before importing.",
+          );
+        importing.current = true;
+        importRequest.current = controller;
+        reading.current?.abort();
+        reading.current = null;
+        setStatus("saving");
         setError("");
+        const importer = await import("@/engine/importers.mjs");
+        const entries = await importer.importTimeline(text, format);
+        if (!active()) return false;
+        if (currentMode.current === "browser") {
+          const base = latestBrowser(current.current);
+          const timeline = prepareImport(base.timeline, entries, replace);
+          writeBrowser("timeline", timeline);
+          accept({ ...base, timeline });
+        } else {
+          const value = await responseValue(
+            await fetch("/api/session", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-Instants-Profile": current.current.profileId,
+              },
+              body: JSON.stringify({ action: "import", entries, replace }),
+              signal: controller.signal,
+            }),
+          );
+          if (!active()) return false;
+          const next = parseSnapshot(value);
+          if (next.profileId !== current.current.profileId)
+            throw new Error(
+              "Your profile changed during import. Reload to open it.",
+            );
+          accept(next);
+        }
+        return true;
+      } catch (cause) {
+        if (active()) fail(cause);
+        return false;
+      } finally {
+        importing.current = false;
+        if (importRequest.current === controller) importRequest.current = null;
       }
-      return;
-    }
-    try {
-      const next = latestBrowserSession(current.current);
-      localStorage.setItem(DEVICE_KEY, JSON.stringify(next));
-      publish(next);
-      setStatus("saved");
-      setError("");
-    } catch (cause) {
-      fail(
-        cause instanceof Error
-          ? cause.message
-          : "Device storage is unavailable or full. Export your session to keep a backup.",
-      );
-    }
-  };
-  const exportSession = () => {
-    const value = current.current
-      ? JSON.stringify(current.current, null, 2)
-      : recoveredRaw.current;
-    if (!value) return;
-    const url = URL.createObjectURL(
-      new Blob([value], { type: "application/json" }),
-    );
-    const link = document.createElement("a");
-    link.href = url;
-    link.download =
-      "instants-session-" + (current.current?.id || "recovery") + ".json";
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  };
-  const state = useMemo(() => projectSession(mock, session), [session]);
+    },
+    [accept, fail],
+  );
+  const exportLog = useCallback(
+    async (kind: "timeline" | "activity") => {
+      try {
+        let text: string;
+        if (currentMode.current === "file" && !pending.current.length) {
+          const response = await fetch("/api/session?export=" + kind, {
+            cache: "no-store",
+          });
+          if (!response.ok)
+            throw new Error(
+              "The original log could not be exported. Retry when the local engine is available.",
+            );
+          text = await response.text();
+        } else if (
+          currentMode.current === "browser" ||
+          currentMode.current === "unavailable"
+        ) {
+          text =
+            localStorage.getItem(KEYS[kind]) ?? jsonl(current.current[kind]);
+        } else text = jsonl(current.current[kind]);
+        download(text, kind + ".jsonl");
+      } catch (cause) {
+        fail(cause);
+      }
+    },
+    [fail],
+  );
+  const refresh = useCallback(() => {
+    if (pending.current.length) void flush();
+    else void load(true);
+  }, [flush, load]);
+  const projection = useMemo(() => projectWorkspace(logs), [logs]);
   return {
-    session,
-    state,
+    ...projection,
+    logs,
+    profileId: logs.profileId,
     record,
     recordBatch,
+    markRead,
+    addNote,
+    importTimeline,
+    exportTimeline: () => void exportLog("timeline"),
+    exportActivity: () => void exportLog("activity"),
+    refresh,
+    retry: refresh,
     mode,
     status,
     error,
-    retry,
-    exportSession,
     ready: mode !== "loading",
     label:
       status === "saving"
@@ -433,6 +600,6 @@ export function useSession() {
             ? "Saved locally"
             : mode === "browser"
               ? "Saved on this device"
-              : "Opening your session…",
+              : "Opening your timeline…",
   };
 }

@@ -1,5 +1,11 @@
 "use client";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   Search,
   Compass,
@@ -13,6 +19,8 @@ import {
   Sun,
   ChevronRight,
   Download,
+  Upload,
+  RefreshCw,
   Bookmark,
   Check,
 } from "lucide-react";
@@ -32,7 +40,6 @@ import {
   Wordmark,
   PoweredBy,
   Verified,
-  mock,
   Post,
 } from "./shared";
 import PostCard from "./post-card";
@@ -46,7 +53,13 @@ import {
   AttentionQueue,
   QueueReplyDialog,
 } from "@/components/collaboration/attention-queue";
-import { getCompany } from "@/lib/data";
+import { DataProvider, useData } from "@/components/data-provider";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 const nav = [
   { name: "Home", icon: HomeIcon },
@@ -58,8 +71,21 @@ const nav = [
   { name: "Create", icon: SquarePlus },
 ];
 export default function InstantsApp() {
-  const hydrated = useClientReady();
   const activity = useSession();
+  return (
+    <DataProvider data={{ ...activity.data, posts: activity.state.allPosts }}>
+      <InstantsShell activity={activity} />
+    </DataProvider>
+  );
+}
+
+function InstantsShell({
+  activity,
+}: {
+  activity: ReturnType<typeof useSession>;
+}) {
+  const { data, getCompany } = useData();
+  const hydrated = useClientReady();
   const ready = hydrated && activity.ready;
   const {
     liked,
@@ -81,14 +107,37 @@ export default function InstantsApp() {
   const [theme, setTheme] = useState<Theme>(brand.defaultTheme as Theme);
   const [view, setView] = useState("Home");
   const [feed, setFeed] = useState("all");
+  const [visibleCount, setVisibleCount] = useState(20);
+  useEffect(() => {
+    setVisibleCount(20);
+  }, [view, feed]);
   const [panel, setPanel] = useState<string | null>(null);
+  useEffect(() => {
+    if (
+      feed !== "all" &&
+      !data.companies.some((company) => company.id === feed)
+    )
+      setFeed("all");
+  }, [data.companies, feed]);
   const [queueId, setQueueId] = useState<string | null>(null);
   const queueItem = attention.find((item) => item.id === queueId);
   const teamQueue = attention.filter(
     (item) => feed === "all" || item.companyId === feed,
   );
-  const [activePost, setActivePost] = useState<Post | null>(null);
-  const [sharePost, setSharePost] = useState<Post | null>(null);
+  const [activePostId, setActivePostId] = useState<string | null>(null);
+  const [sharePostId, setSharePostId] = useState<string | null>(null);
+  const activePost = allPosts.find((post) => post.id === activePostId) ?? null;
+  const sharePost = allPosts.find((post) => post.id === sharePostId) ?? null;
+  const markRead = activity.markRead;
+  const setActivePost = useCallback(
+    (post: Post | null) => {
+      if (post) markRead(post.id);
+      setActivePostId(post?.id ?? null);
+    },
+    [markRead],
+  );
+  const setSharePost = (post: Post | null) => setSharePostId(post?.id ?? null);
+  const [importing, setImporting] = useState(false);
   const [creating, setCreating] = useState(false);
   const [profileId, setProfileId] = useState("you");
   const scrollPositions = useRef<Record<string, number>>({});
@@ -115,6 +164,7 @@ export default function InstantsApp() {
   }
   function respond(post: Post, option: string) {
     if (
+      post.source?.readOnly ||
       !post.instant?.options.some((item) => item.id === option) ||
       (deadlines[post.id] && deadlines[post.id] <= Date.now())
     )
@@ -131,7 +181,7 @@ export default function InstantsApp() {
     const id = new URLSearchParams(window.location.search).get("post");
     const post = allPosts.find((item) => item.id === id);
     if (post) setActivePost(post);
-  }, [ready, allPosts]);
+  }, [ready, allPosts, setActivePost]);
   useEffect(() => {
     setTheme(
       document.documentElement.dataset.theme === "dark" ? "dark" : "light",
@@ -173,6 +223,8 @@ export default function InstantsApp() {
     showView("Profile", id);
   }
   function addComment(postId: string, text: string) {
+    if (allPosts.find((post) => post.id === postId)?.source?.readOnly)
+      return activity.addNote(postId, text);
     return record({ type: "post.comment", data: { postId, text } });
   }
   const dockView = panel === "Search" || view === "Explore" ? "Search" : view;
@@ -233,7 +285,7 @@ export default function InstantsApp() {
             aria-label="Profile"
             onClick={() => navigate("Profile")}
           >
-            <Avatar user={mock.currentUser} size={26} />
+            <Avatar user={data.currentUser} size={26} />
             <span className="nav-label">Profile</span>
           </button>
         </nav>
@@ -267,8 +319,17 @@ export default function InstantsApp() {
               <DropdownMenuItem onClick={() => navigate("Saved")}>
                 <Bookmark size={18} /> Saved
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={activity.exportSession}>
-                <Download size={18} /> Export session
+              <DropdownMenuItem onClick={activity.exportActivity}>
+                <Download size={18} /> Export activity
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={activity.exportTimeline}>
+                <Download size={18} /> Export timeline
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setImporting(true)}>
+                <Upload size={18} /> Import timeline
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={activity.refresh}>
+                <RefreshCw size={18} /> Refresh sources
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <a href="/motion">
@@ -281,10 +342,12 @@ export default function InstantsApp() {
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() =>
-                  toast("You're viewing a UI prototype with sample content.")
+                  toast(
+                    "Instants organizes agent activity from your timeline. Your interactions stay private.",
+                  )
                 }
               >
-                About this prototype
+                About Instants
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -333,7 +396,7 @@ export default function InstantsApp() {
           <div className="session-feedback" role="alert">
             <span>{activity.error}</span>
             <button onClick={activity.retry}>Retry</button>
-            <button onClick={activity.exportSession}>Export session</button>
+            <button onClick={activity.exportActivity}>Export activity</button>
           </div>
         )}
         {view === "Explore" && (
@@ -359,12 +422,22 @@ export default function InstantsApp() {
           <MessagesView
             onProfile={openProfile}
             threads={threads}
-            onSend={(userId, text) =>
-              record({ type: "message.send", data: { userId, text } })
+            onSend={(userId, text, threadId) =>
+              record({
+                type: "message.send",
+                data: { userId, text, ...(threadId ? { threadId } : {}) },
+              })
             }
-            onRead={(userId) => {
-              if (threads.find((thread) => thread.userId === userId)?.unread)
-                record({ type: "message.read", data: { userId } });
+            onRead={(userId, threadId) => {
+              if (
+                threads.find((thread) =>
+                  threadId ? thread.id === threadId : thread.userId === userId,
+                )?.unread
+              )
+                record({
+                  type: "message.read",
+                  data: { userId, ...(threadId ? { threadId } : {}) },
+                });
             }}
           />
         )}
@@ -379,17 +452,24 @@ export default function InstantsApp() {
                 >
                   <TabsList variant="line" className="feed-tabs team-feed-tabs">
                     <TabsTrigger value="all">
-                      {view === "Saved" ? "Saved work" : "All teams"}
+                      {view === "Saved" ? "Saved work" : "All activity"}
                     </TabsTrigger>
                     {view !== "Saved" &&
-                      mock.companies.map((company) => (
+                      data.companies.map((company) => (
                         <TabsTrigger key={company.id} value={company.id}>
                           {company.handle}
                         </TabsTrigger>
                       ))}
                   </TabsList>
                 </Tabs>
-                <span className="feed-wordmark">{brand.tagline}</span>
+                <button
+                  className="source-import-button"
+                  onClick={() => setImporting(true)}
+                  aria-label="Import timeline"
+                >
+                  <Upload size={15} />
+                  <span>Import</span>
+                </button>
                 {view !== "Saved" && (
                   <span className="live-feed-status">
                     <i />
@@ -406,7 +486,7 @@ export default function InstantsApp() {
                 />
               )}
               <div className="posts">
-                {posts.map((post) => (
+                {posts.slice(0, visibleCount).map((post) => (
                   <PostCard
                     key={post.id}
                     post={{
@@ -451,23 +531,48 @@ export default function InstantsApp() {
                 {!posts.length && (
                   <div className="empty-state">
                     <Bookmark size={44} />
-                    <h2>Keep work close</h2>
-                    <p>Save a post to return to its discussion.</p>
+                    <h2>
+                      {view === "Saved"
+                        ? "Keep work close"
+                        : "Your agent activity starts here"}
+                    </h2>
+                    <p>
+                      {view === "Saved"
+                        ? "Save a post to return to its discussion."
+                        : "Import a timeline or a Codex or Claude conversation to explore it in your feed."}
+                    </p>
                     <button
                       className="primary-button"
-                      onClick={() => navigate("Home")}
+                      onClick={() =>
+                        view === "Saved" ? navigate("Home") : setImporting(true)
+                      }
                     >
-                      Explore your feed
+                      {view === "Saved"
+                        ? "Explore your feed"
+                        : "Import timeline"}
                     </button>
                   </div>
                 )}
-                {!!posts.length && (
+                {posts.length > visibleCount && (
+                  <div className="feed-load-more">
+                    <button
+                      className="secondary-button"
+                      onClick={() => setVisibleCount((count) => count + 20)}
+                    >
+                      Load more activity
+                    </button>
+                    <small>
+                      {Math.min(visibleCount, posts.length)} of {posts.length}
+                    </small>
+                  </div>
+                )}
+                {!!posts.length && visibleCount >= posts.length && (
                   <div className="caught-up">
                     <span>
                       <Check size={28} />
                     </span>
-                    <h3>That&apos;s the latest from your teams</h3>
-                    <p>Good work moves forward with a reply.</p>
+                    <h3>You&apos;re up to date</h3>
+                    <p>Your place, notes and saved work stay with you.</p>
                     <button className="text-action" onClick={scrollToTop}>
                       Back to top
                     </button>
@@ -479,10 +584,10 @@ export default function InstantsApp() {
                     </p>
                     <button
                       className="session-export"
-                      onClick={activity.exportSession}
+                      onClick={activity.exportActivity}
                     >
                       <Download size={13} />
-                      Export session
+                      Export activity
                     </button>
                   </div>
                 )}
@@ -491,26 +596,28 @@ export default function InstantsApp() {
             <aside className="suggestions">
               <div className="account-row current-account">
                 <button onClick={() => navigate("Profile")}>
-                  <Avatar user={mock.currentUser} size={46} />
+                  <Avatar user={data.currentUser} size={46} />
                 </button>
                 <button
                   className="account-info"
                   onClick={() => navigate("Profile")}
                 >
-                  <strong>{mock.currentUser.username}</strong>
-                  <span>{mock.currentUser.name}</span>
+                  <strong>{data.currentUser.username}</strong>
+                  <span>{data.currentUser.name}</span>
                 </button>
                 <button
                   className="text-action"
                   onClick={() =>
-                    toast("You're using the Alex Morgan demo account.")
+                    toast(
+                      "Your activity belongs to this private local profile.",
+                    )
                   }
                 >
-                  Switch
+                  Private
                 </button>
               </div>
               <div className="team-summary">
-                {mock.companies.map((company) => (
+                {data.companies.map((company) => (
                   <button
                     key={company.id}
                     onClick={() => {
@@ -536,10 +643,10 @@ export default function InstantsApp() {
                 ))}
               </div>
               <div className="suggestions-heading">
-                <h2>Your people</h2>
+                <h2>People &amp; agents</h2>
                 <button onClick={() => navigate("Explore")}>See All</button>
               </div>
-              {mock.users.slice(0, 5).map((user) => (
+              {data.users.slice(0, 5).map((user) => (
                 <div className="account-row" key={user.id}>
                   <button onClick={() => openProfile(user.id)}>
                     <Avatar user={user} size={44} />
@@ -572,10 +679,10 @@ export default function InstantsApp() {
                 </p>
                 <button
                   className="session-export"
-                  onClick={activity.exportSession}
+                  onClick={activity.exportActivity}
                 >
                   <Download size={13} />
-                  Export session
+                  Export activity
                 </button>
                 <PoweredBy />
                 <p className="footer-copyright">
@@ -625,7 +732,7 @@ export default function InstantsApp() {
           aria-current={view === "Profile" ? "page" : undefined}
           onClick={() => navigate("Profile")}
         >
-          <Avatar user={mock.currentUser} size={25} />
+          <Avatar user={data.currentUser} size={25} />
         </button>
       </nav>
       <SidePanel
@@ -691,6 +798,7 @@ export default function InstantsApp() {
         post={sharePost}
         onClose={() => setSharePost(null)}
         onSend={(ids, post) =>
+          !post.source?.readOnly &&
           activity.recordBatch(
             ids.map((userId) => ({
               type: "message.send",
@@ -706,7 +814,8 @@ export default function InstantsApp() {
           const newPost: Post = {
             id: `local-${Date.now()}`,
             userId: "you",
-            companyId: feed === "all" ? mock.currentUser.companyId : feed,
+            companyId:
+              feed === "all" ? data.currentUser.companyId || undefined : feed,
             requesterId: "you",
             workType: "Feedback",
             location: "Ready for feedback",
@@ -733,9 +842,17 @@ export default function InstantsApp() {
           if (!record({ type: "post.create", data: { post: newPost } }))
             return false;
           showView("Home", "you", true);
-          toast("Your work is ready for feedback in this session");
+          toast("Your post was saved to your timeline");
           return true;
         }}
+      />
+      <ImportTimelineDialog
+        open={importing}
+        onClose={() => setImporting(false)}
+        onImport={activity.importTimeline}
+        onExportTimeline={activity.exportTimeline}
+        onExportActivity={activity.exportActivity}
+        onRefresh={activity.refresh}
       />
       <Toaster
         position="bottom-center"
@@ -749,5 +866,183 @@ export default function InstantsApp() {
         }}
       />
     </SidebarProvider>
+  );
+}
+
+function ImportTimelineDialog({
+  open,
+  onClose,
+  onImport,
+  onExportTimeline,
+  onExportActivity,
+  onRefresh,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onImport: (
+    text: string,
+    format: "timeline" | "codex" | "claude",
+    replace: boolean,
+  ) => Promise<boolean>;
+  onExportTimeline: () => void;
+  onExportActivity: () => void;
+  onRefresh: () => void;
+}) {
+  const { data } = useData();
+  const [text, setText] = useState("");
+  const [format, setFormat] = useState<"timeline" | "codex" | "claude">(
+    "timeline",
+  );
+  const [replace, setReplace] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next && !busy) onClose();
+      }}
+    >
+      <DialogContent className="timeline-import-dialog">
+        <DialogTitle>Your timeline, in one place</DialogTitle>
+        <DialogDescription>
+          Import agent activity from a JSONL file. Your bookmarks, reading state
+          and private notes stay in activity.jsonl.
+        </DialogDescription>
+        {!!data.sources?.length && (
+          <div className="timeline-sources" aria-label="Timeline sources">
+            <div>
+              <strong>In this timeline</strong>
+              <button type="button" onClick={onRefresh}>
+                <RefreshCw size={12} />
+                Refresh
+              </button>
+            </div>
+            {data.sources.map((source) => (
+              <p key={source.id}>
+                <span>{source.label}</span>
+                <small>
+                  {source.readOnly ? "Read only" : "Local"}
+                  {source.status ? ` · ${source.status}` : ""}
+                </small>
+              </p>
+            ))}
+          </div>
+        )}
+        <form
+          onSubmit={async (event) => {
+            event.preventDefault();
+            if (!text.trim() || busy) return;
+            setBusy(true);
+            setError("");
+            try {
+              if (await onImport(text, format, replace)) {
+                setText("");
+                setReplace(false);
+                onClose();
+              } else
+                setError(
+                  "Import could not be saved. Your input is still here; review the error and try again.",
+                );
+            } catch (failure) {
+              setError(
+                failure instanceof Error
+                  ? failure.message
+                  : "Import failed. Try again.",
+              );
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          <label>
+            Source format
+            <select
+              aria-label="Source format"
+              value={format}
+              disabled={busy}
+              onChange={(event) =>
+                setFormat(event.target.value as typeof format)
+              }
+            >
+              <option value="timeline">Instants timeline.jsonl</option>
+              <option value="codex">Codex conversation JSONL</option>
+              <option value="claude">Claude conversation JSONL</option>
+            </select>
+          </label>
+          <label className="timeline-file-label">
+            <Upload size={16} /> Choose a JSONL file
+            <input
+              aria-label="Choose JSONL file"
+              type="file"
+              accept=".jsonl,.json,application/json,text/plain"
+              disabled={busy}
+              onChange={async (event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                if (file.size > 16 * 1024 * 1024) {
+                  setError("Choose a file smaller than 16 MB.");
+                  return;
+                }
+                try {
+                  setText(await file.text());
+                  setError("");
+                } catch {
+                  setError("This file could not be read.");
+                }
+                event.target.value = "";
+              }}
+            />
+          </label>
+          <label>
+            Or paste JSONL
+            <textarea
+              aria-label="Timeline JSONL"
+              rows={7}
+              value={text}
+              disabled={busy}
+              onChange={(event) => setText(event.target.value)}
+              placeholder={'{"schemaVersion":1,...}\nOne JSON record per line'}
+              spellCheck={false}
+            />
+          </label>
+          <label className="timeline-replace">
+            <input
+              type="checkbox"
+              checked={replace}
+              disabled={busy}
+              onChange={(event) => setReplace(event.target.checked)}
+            />
+            Replace the existing feed
+          </label>
+          <p className="timeline-hint">
+            Imported conversations are read-only. Nothing is sent back to an
+            agent or external app.
+          </p>
+          {error && (
+            <p className="timeline-import-error" role="alert">
+              {error}
+            </p>
+          )}
+          <button
+            className="primary-button"
+            type="submit"
+            disabled={!text.trim() || busy}
+          >
+            {busy ? "Importing…" : "Import timeline"}
+          </button>
+        </form>
+        <div className="timeline-exports">
+          <button onClick={onExportTimeline}>
+            <Download size={14} />
+            Export timeline
+          </button>
+          <button onClick={onExportActivity}>
+            <Download size={14} />
+            Export activity
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

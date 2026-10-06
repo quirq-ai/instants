@@ -14,7 +14,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, Verified, Post, getUser, getCompany } from "./shared";
+import { Avatar, Verified, Post } from "./shared";
+import { useData } from "@/components/data-provider";
 import { InstantResponse } from "./instant-response";
 import { MotionCarousel } from "@/components/motion/carousel";
 import { motion } from "@/lib/motion";
@@ -43,6 +44,8 @@ export default function PostCard({
   expiresAt?: number;
   onRespond: (option: string) => void;
 }) {
+  const { getUser, getCompany } = useData();
+  const readOnly = !!post.source?.readOnly;
   const user = getUser(post.userId);
   const company = getCompany(post.companyId ?? user.companyId);
   const [comment, setComment] = useState("");
@@ -101,42 +104,58 @@ export default function PostCard({
             <DropdownMenuItem onClick={onSave}>
               {saved ? "Remove from saved" : "Save post"}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={onShare}>Share post</DropdownMenuItem>
+            {!readOnly && (
+              <DropdownMenuItem onClick={onShare}>Share post</DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={() => onProfile(user.id)}>
               About this account
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </header>
-      <div
-        className={`post-media ${post.images.every((image) => image.startsWith("/work/")) ? "work-preview-media" : ""}`}
-      >
-        <MotionCarousel
-          images={post.images}
-          alt={post.alt}
-          onDoubleTap={() => {
-            if (!liked) onLike();
-            setBurst(true);
-            setBurstVersion((version) => version + 1);
-            if (burstTimer.current) clearTimeout(burstTimer.current);
-            burstTimer.current = setTimeout(
-              () => setBurst(false),
-              motion.durations.like,
-            );
-          }}
+      {post.images.length ? (
+        <div
+          className={`post-media ${post.images.every((image) => image.startsWith("/work/")) ? "work-preview-media" : ""}`}
         >
-          {burst && (
-            <Heart
-              key={burstVersion}
-              className="heart-burst"
-              size={100}
-              fill="white"
-              stroke="white"
-            />
-          )}
-        </MotionCarousel>
-      </div>
-      {post.instant && (
+          <MotionCarousel
+            images={post.images}
+            alt={post.alt}
+            onDoubleTap={() => {
+              if (readOnly) return;
+              if (!liked) onLike();
+              setBurst(true);
+              setBurstVersion((version) => version + 1);
+              if (burstTimer.current) clearTimeout(burstTimer.current);
+              burstTimer.current = setTimeout(
+                () => setBurst(false),
+                motion.durations.like,
+              );
+            }}
+          >
+            {burst && (
+              <Heart
+                key={burstVersion}
+                className="heart-burst"
+                size={100}
+                fill="white"
+                stroke="white"
+              />
+            )}
+          </MotionCarousel>
+        </div>
+      ) : (
+        <button className="agent-text-preview" onClick={() => onComment()}>
+          <span className="agent-source-label">
+            {post.source?.label ?? "Your timeline"}
+          </span>
+          <h2>{post.alt || post.workType || "Agent activity"}</h2>
+          <p>{post.caption}</p>
+          <span className="agent-open-label">
+            Open activity <MessageCircle size={14} />
+          </span>
+        </button>
+      )}
+      {post.instant && !readOnly && (
         <InstantResponse
           instant={post.instant}
           selected={response}
@@ -146,14 +165,16 @@ export default function PostCard({
       )}
       <div className="post-actions">
         <div className="post-action-group">
-          <button
-            className={`icon-button ${liked ? "liked" : ""}`}
-            aria-label={liked ? "Unlike post" : "Like post"}
-            aria-pressed={liked}
-            onClick={onLike}
-          >
-            <Heart fill={liked ? "currentColor" : "none"} />
-          </button>
+          {!readOnly && (
+            <button
+              className={`icon-button ${liked ? "liked" : ""}`}
+              aria-label={liked ? "Unlike post" : "Like post"}
+              aria-pressed={liked}
+              onClick={onLike}
+            >
+              <Heart fill={liked ? "currentColor" : "none"} />
+            </button>
+          )}
           <button
             className="icon-button"
             aria-label="View comments"
@@ -161,13 +182,15 @@ export default function PostCard({
           >
             <MessageCircle />
           </button>
-          <button
-            className="icon-button"
-            aria-label="Share post"
-            onClick={onShare}
-          >
-            <Send />
-          </button>
+          {!readOnly && (
+            <button
+              className="icon-button"
+              aria-label="Share post"
+              onClick={onShare}
+            >
+              <Send />
+            </button>
+          )}
         </div>
         <button
           className="icon-button save-action"
@@ -179,53 +202,66 @@ export default function PostCard({
         </button>
       </div>
       <div className="post-copy">
-        <button className="likes-count" onClick={() => onComment()}>
-          {(post.likes + (liked ? 1 : 0)).toLocaleString("en-US")} likes
-        </button>
-        <p className="caption">
-          <button className="username" onClick={() => onProfile(user.id)}>
-            {user.username}
-          </button>{" "}
-          {post.caption}{" "}
-          {!expanded && (
-            <button className="muted" onClick={() => setExpanded(true)}>
-              more
-            </button>
-          )}
-          {expanded && <span className="hashtags">{post.tags}</span>}
-        </p>
-        <button className="view-comments" onClick={() => onComment()}>
-          View all {post.commentCount} comments
-        </button>
-        <form
-          className="comment-form"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (comment.trim() && onComment(comment.trim())) {
-              setComment("");
-            }
-          }}
-        >
-          <input
-            aria-label="Add a comment"
-            placeholder="Add a comment…"
-            value={comment}
-            onChange={(event) => setComment(event.target.value)}
-          />
-          {comment && (
-            <button className="text-action" type="submit">
-              Post
-            </button>
-          )}
-          <button
-            type="button"
-            className="icon-button comment-emoji"
-            aria-label="Add smile emoji"
-            onClick={() => setComment(comment + " 🤍")}
-          >
-            <Smile size={14} />
+        {!readOnly && (
+          <button className="likes-count" onClick={() => onComment()}>
+            {(post.likes + (liked ? 1 : 0)).toLocaleString("en-US")} likes
           </button>
-        </form>
+        )}
+        {!!post.images.length && (
+          <p className="caption">
+            <button className="username" onClick={() => onProfile(user.id)}>
+              {user.username}
+            </button>{" "}
+            {post.caption}{" "}
+            {!expanded && (
+              <button className="muted" onClick={() => setExpanded(true)}>
+                more
+              </button>
+            )}
+            {expanded && <span className="hashtags">{post.tags}</span>}
+          </p>
+        )}
+        <button className="view-comments" onClick={() => onComment()}>
+          {readOnly
+            ? "Open conversation & private notes"
+            : `View all ${post.commentCount} comments`}
+        </button>
+        {!readOnly && (
+          <form
+            className="comment-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (comment.trim() && onComment(comment.trim())) {
+                setComment("");
+              }
+            }}
+          >
+            <input
+              aria-label="Add a comment"
+              placeholder="Add a comment…"
+              value={comment}
+              onChange={(event) => setComment(event.target.value)}
+            />
+            {comment && (
+              <button className="text-action" type="submit">
+                Post
+              </button>
+            )}
+            <button
+              type="button"
+              className="icon-button comment-emoji"
+              aria-label="Add smile emoji"
+              onClick={() => setComment(comment + " 🤍")}
+            >
+              <Smile size={14} />
+            </button>
+          </form>
+        )}
+        {readOnly && (
+          <p className="source-readonly-note">
+            {post.source?.label} · Read-only source
+          </p>
+        )}
       </div>
     </article>
   );

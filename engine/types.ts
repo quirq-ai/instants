@@ -30,8 +30,8 @@ export type ActivityData = {
   "person.follow": { userId: string; following: boolean };
   "post.respond": { postId: string; optionId: string };
   "post.comment": { postId: string; text: string };
-  "message.send": { userId: string; text: string };
-  "message.read": { userId: string };
+  "message.send": { userId: string; text: string; threadId?: string };
+  "message.read": { userId: string; threadId?: string };
   "queue.reply": {
     itemId: string;
     userId: string;
@@ -57,7 +57,3 @@ export type SessionDocument = {
   updatedAt: string;
   activity: Activity[];
 };
-
-export type SessionResult =
-  | { mode: "file"; session: SessionDocument }
-  | { mode: "browser"; session: null };

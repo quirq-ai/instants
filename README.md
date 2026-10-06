@@ -1,8 +1,8 @@
 # Instants
 
-**Work that needs a reply. People you can see.**
+**Your agent activity, in one place.**
 
-A collaboration prototype for teams sharing work, testing ideas, and getting timely feedback. The example feed follows **xo_builders** and **quirq_ai**. A categorized attention rail brings the people waiting on your reply to the top, while a small private activity journal keeps your own progress between visits. Built with React, TypeScript, and Next.js, with JSON branding, light/dark themes, and native scrolling.
+A local visual workspace for agent activity. Import Codex or Claude conversations, or a normalized Instants timeline, and work through them as a feed. Two JSONL files hold everything: **`timeline.jsonl`** for feed data and **`activity.jsonl`** for your private progress. The original team examples remain available on a new profile. Built with React, TypeScript, and Next.js, with JSON branding, light/dark themes, and native scrolling.
 
 [Get started](#run-locally) · [Motion](#motion-and-gestures) · [Architecture](#architecture) · [Contribute](CONTRIBUTING.md) · [MIT license](LICENSE)
 
@@ -11,19 +11,18 @@ A collaboration prototype for teams sharing work, testing ideas, and getting tim
   <img src="docs/media/mobile-dark.png" alt="Instants mobile feed in the dark theme with a floating navigation dock" width="288" />
 </p>
 
-<p align="center">The mobile feed in light and dark themes.</p>
+<p align="center">The example team feed in light and dark themes; imported activity uses the same layout.</p>
 
 ## What you can try
 
-- **Team work feed:** designs, build checks, test requests, and decisions from `xo_builders` and `quirq_ai`, with quick responses and comments.
-- **People who need you:** the **Needs your reply** rail groups pending DMs, comments, mentions, and reviews. Open a person, read the context, and reply or resolve.
-- **Private progress:** likes, saves, replies, comments, and other supported activity rebuild from a simple session journal. Export it as JSON for inspection or backup.
-- **Create and share:** select a photo, add context, create an instant, or share work into a demo conversation. Seeded posts support links such as `/?post=p1`.
-- **A complete UI journey:** photo carousels, Explore, account search, profiles, saved posts, comments, and demo conversations.
-- **Responsive navigation:** desktop sidebar, tablet rail, and a floating mobile glass dock.
-- **Motion you can inspect:** touch and mouse gestures, scroll restoration, press feedback, and a dedicated `/motion` playground using shared primitives and tokens.
+- **Import real history:** choose an Instants timeline, Codex conversation JSONL, or Claude conversation JSONL; merge it into the feed or replace the existing feed.
+- **Read agent activity:** text cards, full detail, separate conversations, source context, searchable Explore, profiles, and optional visual previews.
+- **Keep private progress:** opening a card records reading state; save it or add a private note. Export the timeline and activity separately.
+- **Review requests:** the attention rail groups DMs, comments, mentions, and reviews. Read-only requests can be dismissed privately without resolving upstream work.
+- **Try the team examples:** new profiles start with `xo_builders` and `quirq_ai` work, quick responses, conversations, and local creation.
+- **Keep the familiar UI:** light/dark themes, carousels, desktop sidebar, floating mobile glass dock, and a `/motion` playground.
 
-This is a private-session prototype with sample accounts and conversations. Replies update your demo state; they are not sent to real teammates. There is no sign-in, team synchronization, or account connection. Local development stores activity in `session/<UUID>/session.json`; Vercel keeps the same journal in your browser. Reels use labeled still-photo previews; account switching and calls are presentation-only.
+Imports are selected by you. Instants does not automatically scan `.agents` or connect to agent accounts, GitHub, or plugins. `.agents` is the conceptual collection of agent data, not a required folder. Imported native conversations are read-only; local/demo replies are never delivered to external applications. There is no authenticated team synchronization yet.
 
 ## Run locally
 
@@ -36,7 +35,7 @@ npm ci
 npm run dev
 ```
 
-Open [localhost:5180](http://localhost:5180) for the app or [localhost:5180/motion](http://localhost:5180/motion) for the motion playground. No API keys or environment variables are required for the demo.
+Open [localhost:5180](http://localhost:5180) for the app or [localhost:5180/motion](http://localhost:5180/motion) for the motion playground. No API keys or environment variables are required for the initial feed and selected-file imports.
 
 | Command             | Purpose                                           |
 | ------------------- | ------------------------------------------------- |
@@ -54,7 +53,7 @@ The default development, build, and production commands use standard Next.js. Th
 
 ## Deploy to Vercel
 
-Import `quirq-ai/instants` into Vercel with the repository root (`.`) as the **Root Directory**. The repository itself is the app; do not enter `instagram-ui` as a subdirectory. Use Node.js 22.x. No API keys or environment variables are required for this frontend demo.
+Import `quirq-ai/instants` into Vercel with the repository root (`.`) as the **Root Directory**. The repository itself is the app; do not enter `instagram-ui` as a subdirectory. Use Node.js 22.x. The hosted app uses browser storage for its two logs; it cannot scan a visitor's local agent files.
 
 The committed [vercel.json](vercel.json) defines the deployment settings:
 
@@ -92,62 +91,70 @@ Edit [config/motion.json](config/motion.json) for shared timings and gesture thr
 
 ## Make it yours
 
-| File                                     | Customize                                                                   |
-| ---------------------------------------- | --------------------------------------------------------------------------- |
-| [config/brand.json](config/brand.json)   | Name, logo, fonts, colors, light/dark tokens, radius, and mobile dock       |
-| [config/motion.json](config/motion.json) | Durations, easing, and gesture thresholds                                   |
-| [data/mock.json](data/mock.json)         | Companies, teammates, work, comments, conversations, and attention requests |
-| [app/globals.css](app/globals.css)       | Layout and component styles                                                 |
+| File                                     | Customize                                                                            |
+| ---------------------------------------- | ------------------------------------------------------------------------------------ |
+| [config/brand.json](config/brand.json)   | Name, logo, fonts, colors, light/dark tokens, radius, and mobile dock                |
+| [config/motion.json](config/motion.json) | Durations, easing, and gesture thresholds                                            |
+| [data/mock.json](data/mock.json)         | First-run demo seed and isolated motion-lab fixtures; existing logs stay independent |
+| [app/globals.css](app/globals.css)       | Layout and component styles                                                          |
 
 Put local assets in `public/` and reference them with a leading `/`. Set `fontStylesheet` to an empty string to use local/system fonts. A saved theme overrides `defaultTheme`; clear the `ig-ui-theme` localStorage entry to test a new default. Production changes require a rebuild.
 
-Each post can include an `instant` with a `kind` (`invite` or `poll`), `title`, `expiresInMinutes`, and response `options` containing `id`, `label`, and `count`. Seeded countdowns begin at the session's creation time. A new post's window begins at its creation event, so refreshing does not reset either deadline.
+Each post can include an `instant` with a `kind` (`invite` or `poll`), `title`, `expiresInMinutes`, and response `options` containing `id`, `label`, and `count`. Local/demo countdowns retain their creation anchor across refresh. Imported source history is read-only and does not invent a fresh response deadline.
 
 ## Architecture
 
-The code is organized around two responsibilities. **UI** owns the experience; **engine** owns the activity contract and persistence. Both ship in the same application.
+The UI reads a shared data provider; the engine validates and replays the two logs. Product components do not read provider files or depend on global fixture identities. The first-run example feed is converted into normal timeline records once, then subsequent visits load the stored timeline.
 
-| Section  | Documentation                                                                       |
-| -------- | ----------------------------------------------------------------------------------- |
-| UI       | [Surfaces, component diagram, request flow, themes, and motion](docs/ui.md)         |
-| Engine   | [Session schema, event vocabulary, storage modes, and API sequence](docs/engine.md) |
-| Overview | [Source map, runtime boundaries, and extension points](docs/architecture.md)        |
+![A synthetic Claude conversation imported into the Instants feed, with source labels and private reading controls](docs/media/agent-feed.png)
+
+The imported-agent feed above uses fictional conversation data. Native source history stays read-only; bookmarks and notes belong to your private activity log.
+
+| Section   | Documentation                                                                               |
+| --------- | ------------------------------------------------------------------------------------------- |
+| UI        | [Surfaces, component diagram, themes, and motion](docs/ui.md)                               |
+| Engine    | [Two-log schema, persistence, imports, recovery, and API](docs/engine.md)                   |
+| Overview  | [Source map and runtime boundaries](docs/architecture.md)                                   |
+| Direction | [Implemented foundation and future connector architecture](docs/agent-data-architecture.md) |
 
 ```mermaid
 flowchart LR
-    seed["Mock teams and work"] --> replay["Engine: replay private activity"]
-    journal["Session journal"] --> replay
-    replay --> ui["UI: feed, people, conversations"]
-    ui -->|"Reply, comment, resolve, save"| journal
-    journal --> local["Local: session / UUID / session.json"]
-    journal --> hosted["Vercel: browser localStorage"]
+    imports["Selected timeline, Codex or Claude JSONL"] --> timeline["timeline.jsonl"]
+    timeline --> replay["Replay records and private progress"]
+    activity["activity.jsonl"] --> replay
+    replay --> ui["Feed, conversations, attention and detail"]
+    ui -->|"Read, save, private note"| activity
+    ui -->|"Create local post"| timeline
 ```
 
-An attention request has a small lifecycle. A reply also updates its associated conversation or post comments; opening the request does not resolve it.
+An attention request has a private viewing lifecycle. A local/demo reply can resolve its local request; an imported request is dismissed only for the current viewer.
 
 ```mermaid
 stateDiagram-v2
     [*] --> pending
-    pending --> reviewing: Open person
+    pending --> reviewing: Open request
     reviewing --> pending: Close without action
-    reviewing --> resolved: Reply
-    reviewing --> resolved: Mark as done
+    reviewing --> dismissed: Dismiss for me
+    reviewing --> resolved: Reply to local request
+    dismissed --> pending: Reopen
     resolved --> [*]
 ```
 
-## Private session activity
+## Two-file storage
 
-Local development records actions in `session/<UUID>/session.json`, selected by an `HttpOnly` session cookie. The folder is ignored by Git. On Vercel, the journal is stored in browser localStorage under `instants-session-v1`; no database setup is required.
+Local Node runs store `.instants/<profile-UUID>/timeline.jsonl` and `.instants/<profile-UUID>/activity.jsonl`. An `HttpOnly` cookie selects the private profile. There is no persistent index, snapshot, or separate outbox. Vercel uses the same JSONL representation in two browser keys: `instants-timeline-v1` and `instants-activity-v1`.
 
-Each journal has `schemaVersion`, `id`, `userId`, `createdAt`, `updatedAt`, and an `activity` array. Each event is `{ id, type, at, data }`. A save is `post.save` with `{ postId, saved: true }`; a contextual reply is `queue.reply`. [The engine guide](docs/engine.md#a-small-session-folder) includes a complete JSON example and validation limits.
+Each line is `{ v, id, at, type, targetId, data }`. A timeline upsert uses `data: { kind, value }`; repeated targets update an existing record. A private save uses `post.save`. See [the engine guide](docs/engine.md) for valid examples and storage limits.
 
-The UI distinguishes **Saved locally** from **Saved on this device**. Use **Export session** to download the journal as `instants-session-<UUID>.json`. Exports are manual backups, not a team sharing or import feature. Failed file saves retain pending events for retry and expose the export option.
+Use **Import** above the feed, or **More → Import timeline**, to select a format and file or paste JSONL. The import dialog also provides **Export timeline** and **Export activity** on desktop and mobile. Native imports show read-only source labels and private-note controls.
+
+The UI reports **Saved locally** or **Saved on this device** only after persistence. Failed file saves offer retry and export; unacknowledged changes remain in memory, so keep the tab open or export before leaving. Old `session/<UUID>/session.json` files are preserved but are no longer the active store; automatic migration is not implemented.
 
 ## Privacy and project scope
 
-Private means a separate browser session, not an authenticated person. A local server owner can read the plain JSON files; browser storage is scoped to the current browser profile and origin. Another person using the same browser profile can access the same demo state. There is no cross-device or shared team persistence.
+Private means a separate browser session, not an authenticated person. A local server owner can read the plain JSON files; browser storage is scoped to the current browser profile and origin. Another person using the same browser profile can access the same private profile. There is no cross-device or shared team persistence.
 
-Selected images can become part of a created post's private journal. In local file mode that journal is sent to your local server; on Vercel it remains in browser storage. Session data, pending saves, and downloaded JSON are unencrypted and should not be committed. Clearing site data can remove the hosted journal. Avoid treating the demo as your only copy of important work.
+Selected conversations, notes, and uploaded images can become part of the two logs. In local file mode they are sent to your local server; on Vercel they remain in browser storage. Runtime logs and exports are unencrypted and should not be committed. Clearing site data can remove hosted data; preserve the originals and export important work.
 
 Remote photos and the configured Google Fonts stylesheet make requests to their respective providers; replace them with local assets for a self-contained demo. No integration sends demo replies to external accounts.
 

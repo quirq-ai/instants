@@ -1,5 +1,3 @@
-import seed from "@/data/mock.json";
-
 export type Company = {
   id: string;
   name: string;
@@ -36,14 +34,22 @@ export type Post = {
   images: string[];
   alt: string;
   caption: string;
+  body?: string;
   tags: string;
   likes: number;
   commentCount: number;
   comments: Comment[];
   instant?: Instant;
+  source?: { id: string; label: string; nativeId?: string; readOnly: boolean };
+  occurredAt?: string;
+  expiresAt?: string;
 };
 export type Message = { mine: boolean; text: string };
 export type Thread = {
+  id?: string;
+  title?: string;
+  readOnly?: boolean;
+  sourceId?: string;
   userId: string;
   preview: string;
   time: string;
@@ -62,12 +68,25 @@ export type AttentionItem = {
   time: string;
   priority: "urgent" | "normal";
   messages: Message[];
+  readOnly?: boolean;
+  resolved?: boolean;
+  sourceId?: string;
+  expiresAt?: string;
 };
 export type QueueItem = AttentionItem & {
   resolved: boolean;
   replies: Message[];
 };
 export type SeedData = {
+  sources?: {
+    id: string;
+    label: string;
+    provider: string;
+    readOnly: boolean;
+    status?: "ready" | "stale" | "error" | "disconnected";
+    description?: string;
+    updatedAt?: string;
+  }[];
   companies: Company[];
   currentUser: Omit<User, "following" | "verified"> & {
     bio: string;
@@ -81,10 +100,3 @@ export type SeedData = {
   messages: Thread[];
   explore: { image: string; alt: string; category: string; likes: string }[];
 };
-export const mock = seed as SeedData;
-export const getUser = (id: string): User =>
-  id === "you"
-    ? { ...mock.currentUser, verified: false, following: true }
-    : mock.users.find((user) => user.id === id) || mock.users[0];
-export const getCompany = (id?: string) =>
-  mock.companies.find((company) => company.id === id);
