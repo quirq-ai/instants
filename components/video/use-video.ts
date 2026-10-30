@@ -6,6 +6,9 @@ import { toast } from "sonner";
 import type { VideoStatus } from "@/lib/research/types";
 
 export type VideoAspect = NonNullable<VideoStatus["aspect"]>;
+export type VideoSound = NonNullable<VideoStatus["sound"]>;
+export const SOUNDS: VideoSound[] = ["full", "music", "off"];
+export const SOUND_LABEL: Record<VideoSound, string> = { full: "Voice + music", music: "Music", off: "Off" };
 export const ASPECTS: VideoAspect[] = ["9:16", "1:1", "16:9"];
 export const LENGTHS = [30, 45, 60];
 
@@ -32,11 +35,12 @@ export async function startVideo(
   slug: string,
   aspect: VideoAspect = "9:16",
   length = 45,
+  sound: VideoSound = "full",
 ): Promise<{ status: VideoStatus; queued: boolean; limit: number }> {
   const res = await fetch("/api/video", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ slug, aspect, length }),
+    body: JSON.stringify({ slug, aspect, length, sound }),
   });
   if (res.status === 409) throw new Error(await readError(res, "A video for this post is already being made"));
   if (!res.ok) throw new Error(await readError(res, "Could not start the video"));
@@ -92,10 +96,10 @@ export function useVideo(slug: string, initial: VideoStatus | null) {
     };
   }, [polling, refresh]);
 
-  async function start(aspect: VideoAspect, length: number) {
+  async function start(aspect: VideoAspect, length: number, sound: VideoSound = "full") {
     setBusy(true);
     try {
-      const { status: next, queued, limit } = await startVideo(slug, aspect, length);
+      const { status: next, queued, limit } = await startVideo(slug, aspect, length, sound);
       prev.current = next.state;
       setStatus(next);
       setRunning((r) => (r.includes(slug) ? r : [...r, slug]));

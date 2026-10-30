@@ -63,7 +63,7 @@ export const videoJob = {
     return this.running().length >= MAX_PARALLEL;
   },
   /** Start runVideo in the background (not tied to any request). Null when this post already has a live job. */
-  start(options: { slug: string; aspect: NonNullable<VideoStatus["aspect"]>; length: number }): Promise<VideoStatus> | null {
+  start(options: { slug: string; aspect: NonNullable<VideoStatus["aspect"]>; length: number; sound: NonNullable<VideoStatus["sound"]> }): Promise<VideoStatus> | null {
     if (live(options.slug)) return null;
     jobs.get(options.slug)?.controller.abort(new Error("stale video lock"));
     const id = (g.__instantsVideoSeq = (g.__instantsVideoSeq ?? 0) + 1);

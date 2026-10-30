@@ -22,15 +22,17 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const denied = localOnly(request);
   if (denied) return denied;
-  const body = (await request.json().catch(() => ({}))) as { slug?: unknown; aspect?: unknown; length?: unknown };
+  const body = (await request.json().catch(() => ({}))) as { slug?: unknown; aspect?: unknown; length?: unknown; sound?: unknown };
   if (!validSlug(body.slug)) return Response.json({ error: "slug is required" }, { status: 400 });
   const aspect = (body.aspect ?? "9:16") as Aspect;
   if (!ASPECTS.includes(aspect)) return Response.json({ error: "aspect must be 9:16, 1:1 or 16:9" }, { status: 400 });
   const length = body.length === undefined ? 45 : Number(body.length);
   if (!Number.isFinite(length) || length < 10 || length > 120) return Response.json({ error: "length must be 10 to 120 seconds" }, { status: 400 });
+  const sound = (body.sound ?? "full") as NonNullable<VideoStatus["sound"]>;
+  if (!["full", "music", "off"].includes(sound)) return Response.json({ error: "sound must be full, music or off" }, { status: 400 });
   if (!(await getRecord(body.slug))) return Response.json({ error: `No post named "${body.slug}".` }, { status: 404 });
   const queued = videoJob.full();
-  const first = videoJob.start({ slug: body.slug, aspect, length: Math.round(length) });
+  const first = videoJob.start({ slug: body.slug, aspect, length: Math.round(length), sound });
   if (!first) {
     return Response.json({ error: "A video for this post is already being made.", running: videoJob.running() }, { status: 409 });
   }

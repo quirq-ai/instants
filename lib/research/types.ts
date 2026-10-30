@@ -192,6 +192,10 @@ export type VideoStatus = {
   poster?: string; // "/research/videos/<slug>.jpg"
   durationSec?: number;
   aspect?: "9:16" | "1:1" | "16:9";
+  /** Soundtrack asked for: narration + music + SFX, music + SFX, or silent. */
+  sound?: "full" | "music" | "off";
+  /** Whether the rendered MP4 has an audio stream. */
+  hasAudio?: boolean;
   error?: string;
   log: { at: string; text: string }[]; // last 60
   stage?: string;

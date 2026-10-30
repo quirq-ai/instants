@@ -15,6 +15,7 @@ const PERSIST_MS = 2000;
 const LOG_MAX = 60;
 const FFMPEG = process.env.FFMPEG_PATH || "/opt/homebrew/bin/ffmpeg";
 const FFPROBE = process.env.FFPROBE_PATH || path.join(path.dirname(FFMPEG), "ffprobe");
+export const SOUNDS = ["full", "music", "off"];
 export const ASPECTS = { "9:16": [1080, 1920], "1:1": [1080, 1080], "16:9": [1920, 1080] };
 const DESTINATION = { "9:16": "Instagram Reels", "1:1": "Instagram feed", "16:9": "YouTube" };
 
@@ -126,7 +127,7 @@ async function prepareInput(record, dir) {
 
 const ANGLE = { Experiment: "narrative", Research: "concept", Study: "concept", Prototype: "narrative", Tool: "how-to", Simulation: "concept" };
 
-export function buildVideoPrompt(record, { aspect, length, assets }) {
+export function buildVideoPrompt(record, { aspect, length, assets, sound = "full" }) {
   const post = record.post;
   const [w, h] = ASPECTS[aspect];
   const angle = ANGLE[post.kind] ?? "concept";
@@ -157,7 +158,7 @@ BRIEF (fully confirmed):
 - length: ${length}s
 - angle: ${angle} (post kind: ${post.kind})
 - audience: people curious about the research
-- narration: no. On-screen typography only. No TTS, no music unless a local file in ./input, no credentials, no sign-in, no cloud rendering.
+${soundBrief(sound, post, length)}
 - assets:
 ${assetLines}
 - customizations: animate the real numbers from the bigNumbers and chart slides, copied exactly as given in ./input/post.json. Never compute, round, re-derive or invent a figure (no new averages, percentages or totals); if a number is not in post.json, leave it out; use accent color ${post.accent}; never put em dashes or en dashes on screen.
@@ -166,12 +167,27 @@ ${assetLines}
 ${numbers.length ? `- real numbers:\n${numbers.join("\n")}` : ""}
 - composition: use the whole ${w}x${h} frame. Center each scene's content vertically, size type for a phone held at arm's length (headlines at least 7% of frame width), and let charts fill most of the frame width. No frame should show only a title: bring the main visual in within the first 0.5s of each scene. Use the provided images when they show the project itself (screenshots, renders), full-bleed with a scrim.
 
+${sound === "off" ? "" : `Audio is pre-approved: follow the media-use skill for voice, music and SFX. Never ask for a sign-in or paid call; if a provider is unavailable, use the free local route, and if that fails too, ship without that layer and say so in one log line. Audio must never block the render, and the final MP4 must carry an audio stream.
+`}
 Rendering is pre-approved: once lint/check passes, render the final MP4 locally without asking.
 When done, print the absolute path of the MP4 on its own line exactly as:
 VIDEO_PATH: <absolute path>
 If you are blocked and cannot finish, print one line:
 VIDEO_ERROR: <reason>
 `;
+}
+
+function soundBrief(sound, post, length) {
+  if (sound === "off") return "- narration: no. On-screen typography only. No TTS, no music, no sound effects. No credentials, no sign-in, no cloud rendering.";
+  const music = `- music: one background bed for the whole video, mood fitting "${noDash(post.topic)}" research (calm, modern, not distracting). Use HeyGen retrieval only if HyperFrames is already signed in; otherwise generate locally (Lyria if GEMINI_API_KEY is set, else MusicGen, which may auto-install). Duck it under narration.
+- sfx: subtle sound effects from the bundled offline set (whoosh on scene transitions, soft pop or click when numbers land). A few, not on every beat.`;
+  if (sound === "music") return `- narration: no. On-screen typography carries the story.
+${music}
+- volume: music at a silent-film level, SFX below it.`;
+  return `- narration: yes. A calm, clear English voiceover written from the post (hook, what was done, the real numbers, the takeaway), about ${Math.round(length * 2.3)} words so it fits ${length}s. Say numbers exactly as written in post.json. Make it with local Kokoro via \`npx hyperframes tts\` (voice af_heart) unless HyperFrames is already signed in to HeyGen. Time scenes to the narration and add captions synced to it.
+${music}
+- volume: voice on top, music as a bed under it (about -18 dB), SFX quiet.
+- no credentials, no sign-in prompts, no cloud rendering.`;
 }
 
 // ---------- stream-json parsing ----------
@@ -349,13 +365,14 @@ async function dryAgent({ dir, signal, t, aspect, length }) {
  * waitTurn, when given, is awaited before any work so a caller can cap how
  * many renders run at once; the status stays "queued" meanwhile.
  */
-export async function runVideo({ slug, aspect = "9:16", length = 45, onStatus, signal, waitTurn } = {}) {
+export async function runVideo({ slug, aspect = "9:16", length = 45, sound = "full", onStatus, signal, waitTurn } = {}) {
   if (!validSlug(slug)) throw new Error("bad slug");
   if (!ASPECTS[aspect]) throw new Error(`aspect must be one of ${Object.keys(ASPECTS).join(", ")}`);
+  if (!SOUNDS.includes(sound)) throw new Error(`sound must be one of ${SOUNDS.join(", ")}`);
   length = Math.round(Math.min(120, Math.max(10, Number(length) || 45)));
   await ensureStore();
   const dir = path.join(VIDEOS_CACHE, slug);
-  const t = tracker(slug, { slug, state: "queued", startedAt: new Date().toISOString(), aspect, log: [], stage: "Queued" }, onStatus);
+  const t = tracker(slug, { slug, state: "queued", startedAt: new Date().toISOString(), aspect, sound, log: [], stage: "Queued" }, onStatus);
   await t.set({});
   try {
     if (waitTurn) {
@@ -372,7 +389,7 @@ export async function runVideo({ slug, aspect = "9:16", length = 45, onStatus, s
     t.log(dry ? "Dry run: simulating the agent" : "Starting the video agent");
     const result = dry
       ? await dryAgent({ dir, signal, t, aspect, length })
-      : await runAgent({ cwd: dir, prompt: buildVideoPrompt(record, { aspect, length, assets }), signal, t });
+      : await runAgent({ cwd: dir, prompt: buildVideoPrompt(record, { aspect, length, assets, sound }), signal, t });
 
     let mp4 = null;
     if (result.videoPath) {
@@ -403,6 +420,12 @@ export async function runVideo({ slug, aspect = "9:16", length = 45, onStatus, s
       const out = await run(FFPROBE, ["-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", outMp4], { signal });
       durationSec = Math.round(Number(out.trim()) * 10) / 10 || undefined;
     } catch {}
+    let hasAudio;
+    try {
+      const out = await run(FFPROBE, ["-v", "error", "-select_streams", "a", "-show_entries", "stream=index", "-of", "csv=p=0", outMp4], { signal });
+      hasAudio = out.trim().length > 0;
+    } catch {}
+    if (sound !== "off" && hasAudio === false) t.log("Rendered without an audio stream");
     t.log("Video ready", "Done");
     await t.set({
       state: "ready",
@@ -410,6 +433,7 @@ export async function runVideo({ slug, aspect = "9:16", length = 45, onStatus, s
       url: `/research/videos/${slug}.mp4`,
       poster,
       durationSec,
+      hasAudio,
       error: undefined,
     });
     await writeJson(path.join(VIDEOS_OUT, `${slug}.status.json`), { ...structuredClone(t.status), log: [] });

@@ -15,7 +15,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ASPECTS, LENGTHS, elapsedLabel, isActive, type VideoAspect, type useVideo } from "./use-video";
+import { ASPECTS, LENGTHS, SOUNDS, SOUND_LABEL, elapsedLabel, isActive, type VideoAspect, type VideoSound, type useVideo } from "./use-video";
 
 type Video = ReturnType<typeof useVideo>;
 
@@ -124,6 +124,7 @@ export function VideoPanel({ slug, video }: { slug: string; video: Video }) {
   const { status, others, busy, start, remove } = video;
   const [aspect, setAspect] = useState<VideoAspect>(status?.aspect ?? "9:16");
   const [length, setLength] = useState(45);
+  const [sound, setSound] = useState<VideoSound>(status?.sound ?? "full");
   const active = isActive(status);
   const now = useNow(active);
   const blocked = busy;
@@ -151,7 +152,7 @@ export function VideoPanel({ slug, video }: { slug: string; video: Video }) {
           </span>
         </div>
         <p className="mt-1 text-[12.5px] text-muted-foreground">
-          {status.aspect ?? "9:16"} video. This takes several minutes; you can leave this page.
+          {status.aspect ?? "9:16"} video{status.sound && status.sound !== "off" ? `, ${SOUND_LABEL[status.sound].toLowerCase()}` : ""}. This takes several minutes; you can leave this page.
         </p>
         <Log log={status.log} />
       </div>
@@ -164,6 +165,7 @@ export function VideoPanel({ slug, video }: { slug: string; video: Video }) {
         <p className="text-[13px] text-muted-foreground">
           {status.aspect ?? "9:16"}
           {status.durationSec ? `, ${Math.round(status.durationSec)}s` : ""}
+          {status.hasAudio === true ? ", with sound" : status.hasAudio === false ? ", silent" : ""}
           {status.finishedAt ? `, made ${new Date(status.finishedAt).toLocaleString()}` : ""}
         </p>
         <div className="flex flex-wrap gap-2">
@@ -172,9 +174,9 @@ export function VideoPanel({ slug, video }: { slug: string; video: Video }) {
           </a>
           <Confirm
             title="Remake this video?"
-            body={`The current video is replaced by a new ${aspect}, ${length}s render. This takes several minutes.`}
+            body={`The current video is replaced by a new ${aspect}, ${length}s render (sound: ${SOUND_LABEL[sound].toLowerCase()}). This takes several minutes.`}
             action="Remake"
-            onConfirm={() => start(aspect, length)}
+            onConfirm={() => start(aspect, length, sound)}
             trigger={
               <button type="button" className={btn} disabled={blocked}>
                 <RotateCcw className="size-3.5" aria-hidden /> Remake
@@ -198,6 +200,7 @@ export function VideoPanel({ slug, video }: { slug: string; video: Video }) {
           <div className="mt-2 flex flex-col gap-2">
             <Segmented label="Aspect" options={ASPECTS} value={aspect} onChange={setAspect} />
             <Segmented label="Length" options={LENGTHS} value={length} onChange={setLength} format={(v) => `${v}s`} />
+            <Segmented label="Sound" options={SOUNDS} value={sound} onChange={setSound} format={(v) => SOUND_LABEL[v]} />
           </div>
         </details>
         {otherNote}
@@ -224,10 +227,11 @@ export function VideoPanel({ slug, video }: { slug: string; video: Video }) {
       <div className="flex flex-col gap-2">
         <Segmented label="Aspect" options={ASPECTS} value={aspect} onChange={setAspect} disabled={blocked} />
         <Segmented label="Length" options={LENGTHS} value={length} onChange={setLength} format={(v) => `${v}s`} disabled={blocked} />
+        <Segmented label="Sound" options={SOUNDS} value={sound} onChange={setSound} format={(v) => SOUND_LABEL[v]} disabled={blocked} />
       </div>
       <button
         type="button"
-        onClick={() => start(aspect, length)}
+        onClick={() => start(aspect, length, sound)}
         disabled={blocked}
         className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-brand px-5 text-[14px] font-semibold text-brand-ink transition hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
       >
