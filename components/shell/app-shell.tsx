@@ -58,10 +58,19 @@ export function Logo({ className = "" }: { className?: string }) {
   return (
     <Link href="/" className={`flex items-center gap-2 ${className}`} aria-label="Instants home">
       <svg viewBox="0 0 64 64" className="size-7 shrink-0" aria-hidden>
-        <rect width="64" height="64" rx="16" fill="var(--ink)" />
+        <defs>
+          <linearGradient id="instants-mark" x1="0" y1="1" x2="1" y2="0">
+            <stop offset=".05" stopColor="#ffd776" />
+            <stop offset=".2" stopColor="#f6a03d" />
+            <stop offset=".45" stopColor="#f14b54" />
+            <stop offset=".7" stopColor="#d72f83" />
+            <stop offset=".95" stopColor="#9d3fce" />
+          </linearGradient>
+        </defs>
+        <rect width="64" height="64" rx="16" fill="url(#instants-mark)" />
         <path
           d="M32 11c1.6 11.2 9.8 19.4 21 21-11.2 1.6-19.4 9.8-21 21-1.6-11.2-9.8-19.4-21-21 11.2-1.6 19.4-9.8 21-21z"
-          fill="#83d63a"
+          fill="#ffffff"
         />
       </svg>
       <span className="flex flex-col">

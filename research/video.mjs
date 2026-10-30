@@ -346,8 +346,10 @@ async function dryAgent({ dir, signal, t, aspect, length }) {
 /**
  * Render one post to video. Resolves with the final VideoStatus (ready or
  * failed); never throws for agent failures, only writes them to status.
+ * waitTurn, when given, is awaited before any work so a caller can cap how
+ * many renders run at once; the status stays "queued" meanwhile.
  */
-export async function runVideo({ slug, aspect = "9:16", length = 45, onStatus, signal } = {}) {
+export async function runVideo({ slug, aspect = "9:16", length = 45, onStatus, signal, waitTurn } = {}) {
   if (!validSlug(slug)) throw new Error("bad slug");
   if (!ASPECTS[aspect]) throw new Error(`aspect must be one of ${Object.keys(ASPECTS).join(", ")}`);
   length = Math.round(Math.min(120, Math.max(10, Number(length) || 45)));
@@ -356,6 +358,11 @@ export async function runVideo({ slug, aspect = "9:16", length = 45, onStatus, s
   const t = tracker(slug, { slug, state: "queued", startedAt: new Date().toISOString(), aspect, log: [], stage: "Queued" }, onStatus);
   await t.set({});
   try {
+    if (waitTurn) {
+      await t.set({ stage: "Waiting for a free slot" });
+      await waitTurn();
+      await t.set({ stage: "Starting" });
+    }
     const record = await fs.readFile(path.join(postsDir(), `${slug}.json`), "utf8").then(JSON.parse).catch(() => null);
     if (!record?.post) throw new Error(`No post named "${slug}".`);
     t.log("Preparing inputs", "Preparing");

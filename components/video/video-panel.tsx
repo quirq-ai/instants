@@ -121,20 +121,20 @@ function useNow(active: boolean) {
 
 /** The post page "Video" section: make, watch progress, play, remake or delete. */
 export function VideoPanel({ slug, video }: { slug: string; video: Video }) {
-  const { status, otherRunning, busy, start, remove } = video;
+  const { status, others, busy, start, remove } = video;
   const [aspect, setAspect] = useState<VideoAspect>(status?.aspect ?? "9:16");
   const [length, setLength] = useState(45);
   const active = isActive(status);
   const now = useNow(active);
-  const blocked = Boolean(otherRunning) || busy;
+  const blocked = busy;
 
-  const otherNote = otherRunning ? (
+  const otherNote = others.length ? (
     <p role="status" className="mt-3 text-[12.5px] text-muted-foreground">
-      A video for{" "}
-      <Link href={`/p/${otherRunning}`} className="font-medium text-ink underline">
-        {otherRunning}
-      </Link>{" "}
-      is being made. One video at a time.
+      {others.length === 1 ? "1 other video is" : `${others.length} other videos are`} being made.{" "}
+      <Link href="/videos" className="font-medium text-ink underline">
+        See all
+      </Link>
+      . New ones run alongside, or queue when every slot is busy.
     </p>
   ) : null;
 

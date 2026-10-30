@@ -13,7 +13,9 @@ npm install
 npm run dev        # http://localhost:5180
 ```
 
-Pages: Feed (`/`), Library, Topics, Insights, Sources (scan and generate), Add (upload new data), and a slide gallery at `/dev/slides`.
+Pages: Feed (`/`, with an All posts / Videos filter), Library, Topics, Videos, Insights, Sources (scan, generate, Space), Add (upload new data), Unlock (deploys only), and a slide gallery at `/dev/slides`.
+
+Copy `.env.example` to `.env.local` for anything beyond the defaults. Nothing is required locally: without `ANTHROPIC_API_KEY` generation uses your `claude` login.
 
 ## Generate posts
 
@@ -47,12 +49,50 @@ On Sources, the **Space** card connects a Spacehub project (default `quirq/curie
 
 Test overrides: `INSTANTS_SPACEHUB_BIN` (the CLI used for view/clone/sync) and `INSTANTS_SPACE_SYNC_CMD` (a shell command run instead of the sync).
 
+## Videos
+
+Any post can become a short video from its Video panel (or `npm run video -- <slug> --aspect 9:16 --length 30`). An unattended local `claude` agent runs the HyperFrames skill with shell and file tools in `.research-cache/videos-work/<slug>/` and writes the mp4 and poster into the store. It needs a logged-in `claude` CLI with the HyperFrames skill and `ffmpeg`, so it works on a dev machine, not in the container.
+
+## Deploy
+
+The image serves the app on port 3000 and reads its library from Curie (or any Spacehub project).
+
+```bash
+npm run vendor:spacehub   # copy your private spacehub CLI into .spacehub-cli/ (gitignored)
+docker build --platform linux/amd64 -t registry.xo.builders/instants-xo-tpbhrsi/app:latest .
+docker push registry.xo.builders/instants-xo-tpbhrsi/app:latest
+```
+
+Without `.spacehub-cli/` the image still builds, but space sync is off and the library starts empty.
+
+Set these on the deployment:
+
+| Variable | Required | What it does |
+|---|---|---|
+| `SPACEHUB_TOKEN` | for sync | Output of `spacehub auth token`. The entrypoint logs the CLI in with it on start. |
+| `INSTANTS_SPACE` | for sync | Project to connect on first boot, e.g. `quirq/curie`. |
+| `INSTANTS_ADMIN_TOKEN` | for actions | Any long random string. Open `/unlock` and enter it to save, note, generate and manage the space from a non-localhost domain. Unset, the production server refuses every action and the site is read-only (only `next dev` trusts localhost). |
+| `ANTHROPIC_API_KEY` | for generation | Generates posts through the API (the container has no `claude` login). |
+| `SPACEHUB_SERVER` | no | Hub other than `wss://hub.quirq.dev`. |
+| `GIT_AUTHOR_NAME`, `GIT_AUTHOR_EMAIL` | no | Identity for sync commits (default `Instants`). |
+| `INSTANTS_ROOTS` | no | Colon-separated folders to scan (default `/research` in the image). Mount research there. |
+
+Mount a named volume at `/app/.research-cache` (a bind mount must be owned by uid 1000) to keep the clone, saves and notes across restarts. Generate a token with `openssl rand -hex 32`.
+
+```bash
+docker run -p 3000:3000 \
+  -e SPACEHUB_TOKEN="$(spacehub auth token)" -e INSTANTS_SPACE=quirq/curie \
+  -e INSTANTS_ADMIN_TOKEN=change-me -e ANTHROPIC_API_KEY=sk-ant-... \
+  -v instants-cache:/app/.research-cache \
+  registry.xo.builders/instants-xo-tpbhrsi/app:latest
+```
+
 ## How generation auth works
 
 - If `ANTHROPIC_API_KEY` is set, the engine calls the Anthropic API directly from the server.
 - Otherwise it shells out to the local `claude` CLI, using whatever login that CLI has (`claude /login`).
 
-All model calls happen server-side. The browser never sees a key, and the API routes only accept loopback requests.
+All model calls happen server-side. The browser never sees a key. Under `next dev` the API routes accept loopback requests; a production server (including the Docker image) never trusts the Host header and only accepts, when `INSTANTS_ADMIN_TOKEN` is set, same-origin requests carrying the httpOnly cookie that `/unlock` sets.
 
 ## Stack
 

@@ -294,8 +294,8 @@ export function SyncDot() {
       : snap.pending.length
         ? ["var(--warn)", `${snap.pending.length} pending from space`, false]
         : st === "syncing" || st === "connecting"
-          ? ["#83d63a", "Space syncing", true]
-          : ["#83d63a", "Space in sync", false];
+          ? ["var(--brand)", "Space syncing", true]
+          : ["var(--ok)", "Space in sync", false];
   return (
     <Link href="/sources" className="flex items-center gap-1.5 text-xs text-faint hover:text-ink" title={label} aria-label={label}>
       <span className={`size-2 rounded-full ${pulse ? "animate-pulse" : ""}`} style={{ background: color }} />

@@ -18,4 +18,6 @@ export declare function runVideo(options: {
   length?: number;
   onStatus?: (status: VideoStatus) => void;
   signal?: AbortSignal;
+  /** Awaited before any work; lets a caller cap concurrent renders. */
+  waitTurn?: () => Promise<void>;
 }): Promise<VideoStatus>;

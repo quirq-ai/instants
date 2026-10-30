@@ -2,7 +2,7 @@
 
 import type { Slide, Source } from "@/lib/research/types";
 
-export const FIXTURE_ACCENTS = ["#83d63a", "#5b8def", "#e8743b"];
+export const FIXTURE_ACCENTS = ["#0095f6", "#d72f83", "#5b8def", "#e8743b"];
 
 export const FIXTURE_SOURCES: Source[] = [
   { id: "s1", path: "docs/findings.md", lines: "40-62", note: "Benchmark table" },

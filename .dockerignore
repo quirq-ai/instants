@@ -5,7 +5,8 @@ npm-debug.log*
 .env
 .env.*
 !.env*.example
-# Private local state; posts are kept so the image shows the library.
+# Private local state. A deploy gets its library from the space (INSTANTS_SPACE).
 .research-cache/*
-!.research-cache/posts/
+
 tsconfig.tsbuildinfo
+.spacehub-cli/node_modules

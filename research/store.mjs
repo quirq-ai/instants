@@ -100,17 +100,34 @@ export async function writeJson(file, data) {
 
 const README = `# Curie
 
-The Curie library for Instants: research turned into carousel posts.
-This folder is written by the Instants app; when it is a Spacehub project it
-syncs both ways with every machine that connects to it.
+The Curie library for [Instants](https://github.com/quirq-ai/instants): research turned into carousel posts and short videos. Named after Marie Curie, who kept meticulous notebooks of every experiment.
 
-- \`posts/<slug>.json\`: one post record (slides, sources, metadata)
-- \`media/<slug>/*\`: images used by a post's slides
-- \`videos/<slug>.mp4\`, \`<slug>.jpg\`, \`<slug>.status.json\`: rendered video, poster, render result
-- \`sources/<slug>/*\`: uploaded sources (with \`.upload.json\`); a source with no post yet is pending
-- \`instants.json\`: library manifest
+Instants writes this folder. As a Spacehub project it syncs both ways with every machine and deploy that connects to it.
+
+## Layout
+
+\`\`\`
+posts/<slug>.json            one post: slides, numbered sources, topic, accent, dates
+media/<slug>/*               images used by a post's slides
+videos/<slug>.mp4, .jpg      rendered video and poster
+videos/<slug>.status.json    render result (duration, aspect, finishedAt)
+sources/<slug>/*             uploaded sources, with .upload.json; no post yet means pending
+instants.json                library manifest
+\`\`\`
 
 Saves, pins, notes and read state stay on each machine and are never written here.
+
+## Connect
+
+- **Locally:** run Instants, open Sources, and connect \`quirq/curie\` on the Space card. You need \`spacehub auth login\` first.
+- **On a deploy:** set \`SPACEHUB_TOKEN\` (from \`spacehub auth token\`) and \`INSTANTS_SPACE=quirq/curie\`. The container logs in and clones on first boot. See the Deploy section of the Instants README.
+- **By hand:** \`spacehub project clone quirq/curie\`, then \`spacehub project sync --auto\` inside the clone.
+
+## Add research
+
+Drop files into \`sources/<slug>/\` from any clone (notes, CSV, JSON, images, code). Instants lists them as pending and, with Auto-generate on, turns each into a post.
+
+Do not edit \`posts/*.json\` by hand unless you keep the schema; Instants validates records on read and skips broken ones.
 `;
 
 /** Make the layout, manifest and README exist in a store (missing pieces only). */

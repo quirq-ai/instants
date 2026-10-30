@@ -27,36 +27,39 @@ async function readError(res: Response, fallback: string) {
   return body?.error ?? body?.message ?? `${fallback} (${res.status})`;
 }
 
-/** Start a video job; returns the new status or throws with a readable message. */
-export async function startVideo(slug: string, aspect: VideoAspect = "9:16", length = 45): Promise<VideoStatus> {
+/** Start a video job; returns the new status (and whether it waits for a slot) or throws with a readable message. */
+export async function startVideo(
+  slug: string,
+  aspect: VideoAspect = "9:16",
+  length = 45,
+): Promise<{ status: VideoStatus; queued: boolean; limit: number }> {
   const res = await fetch("/api/video", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ slug, aspect, length }),
   });
-  if (res.status === 409) throw new Error(await readError(res, "Another video is already being made"));
+  if (res.status === 409) throw new Error(await readError(res, "A video for this post is already being made"));
   if (!res.ok) throw new Error(await readError(res, "Could not start the video"));
-  const body = (await res.json()) as { status: VideoStatus };
-  return body.status;
+  return (await res.json()) as { status: VideoStatus; queued: boolean; limit: number };
 }
 
 /**
  * Video status for one post. Polls GET /api/video every 3s while this post's
- * job (or another post's job) is running and the page is visible.
+ * job is running and the page is visible. Other posts' jobs run alongside.
  */
 export function useVideo(slug: string, initial: VideoStatus | null) {
   const router = useRouter();
   const [status, setStatus] = useState<VideoStatus | null>(initial);
-  const [running, setRunning] = useState<string | null>(isActive(initial) ? slug : null);
+  const [running, setRunning] = useState<string[]>(isActive(initial) ? [slug] : []);
   const [busy, setBusy] = useState(false);
   const prev = useRef(initial?.state);
 
   const refresh = useCallback(async () => {
     const res = await fetch(`/api/video?slug=${encodeURIComponent(slug)}`, { cache: "no-store" }).catch(() => null);
     if (!res?.ok) return;
-    const body = (await res.json()) as { status: VideoStatus | null; running: string | null };
+    const body = (await res.json()) as { status: VideoStatus | null; running: string[]; limit?: number };
     setStatus(body.status);
-    setRunning(body.running);
+    setRunning(body.running ?? []);
   }, [slug]);
 
   // React to state transitions.
@@ -72,7 +75,7 @@ export function useVideo(slug: string, initial: VideoStatus | null) {
     }
   }, [status, router]);
 
-  const polling = isActive(status) || (running !== null && running !== slug);
+  const polling = isActive(status);
   useEffect(() => {
     void refresh();
   }, [refresh]);
@@ -92,11 +95,15 @@ export function useVideo(slug: string, initial: VideoStatus | null) {
   async function start(aspect: VideoAspect, length: number) {
     setBusy(true);
     try {
-      const next = await startVideo(slug, aspect, length);
+      const { status: next, queued, limit } = await startVideo(slug, aspect, length);
       prev.current = next.state;
       setStatus(next);
-      setRunning(slug);
-      toast.success("Making video", { description: "This takes several minutes. You can leave the page." });
+      setRunning((r) => (r.includes(slug) ? r : [...r, slug]));
+      toast.success(queued ? "Video queued" : "Making video", {
+        description: queued
+          ? `${limit} videos are already rendering. This one starts when a slot frees up.`
+          : "This takes several minutes. You can leave the page.",
+      });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not start the video");
       void refresh();
@@ -121,5 +128,5 @@ export function useVideo(slug: string, initial: VideoStatus | null) {
     }
   }
 
-  return { status, running, otherRunning: running && running !== slug ? running : null, busy, start, remove };
+  return { status, others: running.filter((s) => s !== slug), busy, start, remove };
 }

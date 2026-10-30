@@ -59,3 +59,6 @@ next-env.d.ts
 # or the Spacehub clone under .research-cache/space/); activity, scan state, space
 # config and video working dirs stay local. None of it belongs in this repo.
 .research-cache/
+
+# Private spacehub CLI copied for Docker builds (npm run vendor:spacehub)
+.spacehub-cli/

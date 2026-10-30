@@ -521,7 +521,7 @@ export function validatePost(raw, { sources, media, hasGit, name, sourceText = {
     summary: isStr(post.summary) ? post.summary.trim() : "",
     writeup: isStr(post.writeup) ? post.writeup.trim() : "",
     tags: strings(post.tags).map((t) => t.toLowerCase().replace(/^#/, "").trim()).slice(0, 6),
-    accent: /^#[0-9a-f]{6}$/i.test(post.accent || "") ? post.accent : "#83d63a",
+    accent: /^#[0-9a-f]{6}$/i.test(post.accent || "") ? post.accent : "#0095f6",
     sources: outSources,
     slides,
   };

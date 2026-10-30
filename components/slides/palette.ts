@@ -11,7 +11,7 @@ type Hsl = { h: number; s: number; l: number };
 
 function hexToHsl(hex: string): Hsl {
   const m = /^#?([0-9a-f]{6}|[0-9a-f]{3})$/i.exec(hex.trim());
-  let v = m ? m[1] : "83d63a";
+  let v = m ? m[1] : "0095f6";
   if (v.length === 3) v = v.split("").map((c) => c + c).join("");
   const n = parseInt(v, 16);
   const r = ((n >> 16) & 255) / 255;

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2, Play, X } from "lucide-react";
 import type { VideoStatus } from "@/lib/research/types";
 import { VideoPlayer } from "./video-player";
@@ -78,10 +79,20 @@ function Tile({ item, onOpen }: { item: VideoItem; onOpen: () => void }) {
 
 export function VideoGrid({ items, running }: { items: VideoItem[]; running: VideoItem[] }) {
   const [open, setOpen] = useState<VideoItem | null>(null);
+  const router = useRouter();
+  // Several jobs can run at once; refresh so each moves to the grid as it finishes.
+  useEffect(() => {
+    if (!running.length) return;
+    const id = setInterval(() => document.visibilityState === "visible" && router.refresh(), 5000);
+    return () => clearInterval(id);
+  }, [running.length, router]);
   return (
     <>
       {running.length > 0 && (
         <div className="mb-6 flex flex-col gap-2">
+          <p className="text-[12.5px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+            In progress ({running.length})
+          </p>
           {running.map((item) => (
             <Link
               key={item.slug}

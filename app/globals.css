@@ -7,26 +7,27 @@
   user picked a theme (html[data-theme]). Every surface reads these tokens.
 */
 :root {
-  --bg: #f6f5f1;
+  --bg: #fafafa;
   --surface: #ffffff;
-  --surface-2: #f0efe9;
-  --surface-3: #e7e5dd;
-  --ink: #16150f;
-  --ink-2: #3b3a33;
-  --muted: #6e6c62;
-  --faint: #a19e92;
-  --line: #e2e0d7;
-  --line-strong: #cfccc0;
-  --brand: #3f6f1c; /* darkened lime for contrast on light */
+  --surface-2: #f2f2f2;
+  --surface-3: #efefef;
+  --ink: #101010;
+  --ink-2: #262626;
+  --muted: #737373;
+  --faint: #a8a8a8;
+  --line: #dbdbdb;
+  --line-strong: #c7c7c7;
+  --brand: #0095f6;
   --brand-ink: #ffffff;
-  --brand-soft: #e6f0da;
-  --danger: #b4321f;
+  --brand-soft: #e0f1fe;
+  --danger: #ed4956;
   --warn: #a8620c;
-  --ok: #2f7a3b;
-  --focus: #3f6f1c;
+  --ok: #16834b;
+  --focus: #0095f6;
   --shadow: 0 1px 2px rgb(20 18 10 / 0.05), 0 8px 24px -12px rgb(20 18 10 / 0.18);
   --shadow-lg: 0 24px 60px -20px rgb(20 18 10 / 0.35);
   --radius: 14px;
+  --story: linear-gradient(35deg, #ffd776 5%, #f6a03d 20%, #f14b54 45%, #d72f83 70%, #9d3fce 95%);
   --radius-sm: 8px;
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: var(--font-serif), ui-serif, Georgia, serif;
@@ -37,23 +38,23 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0e0f0c;
-    --surface: #161814;
-    --surface-2: #1d1f1a;
-    --surface-3: #272a23;
-    --ink: #f1f2ec;
-    --ink-2: #cfd1c8;
-    --muted: #979a8e;
-    --faint: #686b60;
-    --line: #262922;
-    --line-strong: #363a31;
-    --brand: #83d63a;
-    --brand-ink: #10140b;
-    --brand-soft: #1f2d14;
-    --danger: #f0735c;
+    --bg: #000000;
+    --surface: #121212;
+    --surface-2: #1a1a1a;
+    --surface-3: #262626;
+    --ink: #f5f5f5;
+    --ink-2: #dbdbdb;
+    --muted: #a8a8a8;
+    --faint: #737373;
+    --line: #262626;
+    --line-strong: #363636;
+    --brand: #0095f6;
+    --brand-ink: #ffffff;
+    --brand-soft: #0b2a40;
+    --danger: #ff3040;
     --warn: #e7a64a;
-    --ok: #7cc98a;
-    --focus: #83d63a;
+    --ok: #58c27d;
+    --focus: #0095f6;
     --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
     --shadow-lg: 0 24px 60px -20px rgb(0 0 0 / 0.8);
     color-scheme: dark;
@@ -61,23 +62,23 @@
 }
 
 :root[data-theme="dark"] {
-  --bg: #0e0f0c;
-  --surface: #161814;
-  --surface-2: #1d1f1a;
-  --surface-3: #272a23;
-  --ink: #f1f2ec;
-  --ink-2: #cfd1c8;
-  --muted: #979a8e;
-  --faint: #686b60;
-  --line: #262922;
-  --line-strong: #363a31;
-  --brand: #83d63a;
-  --brand-ink: #10140b;
-  --brand-soft: #1f2d14;
-  --danger: #f0735c;
+  --bg: #000000;
+  --surface: #121212;
+  --surface-2: #1a1a1a;
+  --surface-3: #262626;
+  --ink: #f5f5f5;
+  --ink-2: #dbdbdb;
+  --muted: #a8a8a8;
+  --faint: #737373;
+  --line: #262626;
+  --line-strong: #363636;
+  --brand: #0095f6;
+  --brand-ink: #ffffff;
+  --brand-soft: #0b2a40;
+  --danger: #ff3040;
   --warn: #e7a64a;
-  --ok: #7cc98a;
-  --focus: #83d63a;
+  --ok: #58c27d;
+  --focus: #0095f6;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
   --shadow-lg: 0 24px 60px -20px rgb(0 0 0 / 0.8);
   color-scheme: dark;

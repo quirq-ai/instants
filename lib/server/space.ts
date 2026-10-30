@@ -341,6 +341,8 @@ export function connect(project: string) {
       const clone = await runCli(spacehubBin(), ["project", "clone", project, dir], undefined, 10 * 60_000);
       clone.out.split("\n").forEach(pushLog);
       if (clone.code !== 0 || !fs.existsSync(path.join(dir, ".git"))) {
+        // A partial clone would block every retry ("exists and is not a git clone").
+        await fsp.rm(dir, { recursive: true, force: true }).catch(() => {});
         s.status.state = "error";
         s.status.lastError = clone.out.split("\n").pop() || "clone failed";
         throw new Error(`Clone failed: ${s.status.lastError}`);
@@ -421,6 +423,13 @@ export async function boot() {
   await ensureStore().catch((error) => console.error("[instants] store migration failed", error));
   const cfg = readSpaceConfig();
   const s = sup();
+  // A deploy names its space in INSTANTS_SPACE and connects on first boot.
+  const wanted = process.env.INSTANTS_SPACE;
+  if (wanted && !cfg.project && validProject(wanted)) {
+    await connect(wanted).catch((error) => console.error(`[instants] could not connect ${wanted}:`, error.message));
+    watchSources();
+    return;
+  }
   if (cfg.project && !s.child && s.status.state !== "conflict") {
     const dir = spaceDirFor(cfg.project);
     if (fs.existsSync(path.join(dir, ".git"))) {

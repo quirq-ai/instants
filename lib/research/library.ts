@@ -129,14 +129,14 @@ export async function writeSourceStatus(status: SourceStatus[]) {
 
 const VIDEOS_CACHE = VIDEOS_WORK;
 
-function liveVideoSlug(): string | null {
-  const held = (globalThis as unknown as { __instantsVideoJob?: { slug: string; startedAt: number } | null }).__instantsVideoJob;
-  return held && Date.now() - held.startedAt < 50 * 60 * 1000 ? held.slug : null;
+function liveVideoSlug(slug: string): boolean {
+  const held = (globalThis as unknown as { __instantsVideoJobs?: Map<string, { startedAt: number }> }).__instantsVideoJobs?.get(slug);
+  return Boolean(held && Date.now() - held.startedAt < 50 * 60 * 1000);
 }
 
-/** A queued/running status with no live lock is reported as failed ("interrupted"). */
-function settle(status: VideoStatus, running: string | null): VideoStatus {
-  if ((status.state === "running" || status.state === "queued") && running !== status.slug) {
+/** A queued/running status with no live job is reported as failed ("interrupted"). */
+function settle(status: VideoStatus): VideoStatus {
+  if ((status.state === "running" || status.state === "queued") && !liveVideoSlug(status.slug)) {
     return { ...status, state: "failed", error: status.error ?? "interrupted", finishedAt: status.finishedAt ?? status.startedAt };
   }
   return status;
@@ -159,7 +159,7 @@ export async function getVideoStatus(slug: string): Promise<VideoStatus | null> 
     readStatus(path.join(videosDir(), `${slug}.status.json`)),
   ]);
   const status = !local ? shared : !shared ? local : shared.startedAt > local.startedAt ? shared : local;
-  return status ? settle(status, liveVideoSlug()) : null;
+  return status ? settle(status) : null;
 }
 
 export async function getVideoStatuses(): Promise<Record<string, VideoStatus>> {

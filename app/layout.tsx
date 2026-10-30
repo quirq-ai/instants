@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   description: "Instants: everything you have researched, kept in the Curie library as posts you can browse.",
   icons: {
     icon: `data:image/svg+xml,${encodeURIComponent(
-      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#16150f"/><path d="M32 11c1.6 11.2 9.8 19.4 21 21-11.2 1.6-19.4 9.8-21 21-1.6-11.2-9.8-19.4-21-21 11.2-1.6 19.4-9.8 21-21z" fill="#83d63a"/></svg>`,
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="ig" x1="0" y1="1" x2="1" y2="0"><stop offset=".05" stop-color="#ffd776"/><stop offset=".2" stop-color="#f6a03d"/><stop offset=".45" stop-color="#f14b54"/><stop offset=".7" stop-color="#d72f83"/><stop offset=".95" stop-color="#9d3fce"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(#ig)"/><path d="M32 11c1.6 11.2 9.8 19.4 21 21-11.2 1.6-19.4 9.8-21 21-1.6-11.2-9.8-19.4-21-21 11.2-1.6 19.4-9.8 21-21z" fill="#fff"/></svg>`,
     )}`,
   },
 };
