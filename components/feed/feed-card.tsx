@@ -5,7 +5,7 @@ import { forwardRef, useState } from "react";
 import { Bookmark, ChevronDown, Clapperboard, FolderOpen, Images, Link2, Loader2, Pin, Play, SquareArrowOutUpRight } from "lucide-react";
 import { SlideCarousel } from "@/components/slides";
 import type { ResearchRecord, VideoStatus } from "@/lib/research/types";
-import { VideoPlayer } from "@/components/video/video-player";
+import { FeedReel } from "@/components/video/feed-reel";
 import { isActive } from "@/components/video/use-video";
 import { copyPostLink, openFolder, useActivityFlag } from "@/components/post/activity-client";
 import { gitSpan, researchLabel } from "@/components/post/meta";
@@ -64,7 +64,8 @@ export const FeedCard = forwardRef<
   const span = gitSpan(record);
   const ready = video?.state === "ready" && Boolean(video.url);
   const making = isActive(video);
-  const [playing, setPlaying] = useState(false);
+  // Like Instagram, a post with a video opens on the video; slides are one tap away.
+  const [playing, setPlaying] = useState(true);
 
   return (
     <article
@@ -108,8 +109,8 @@ export const FeedCard = forwardRef<
       </header>
 
       {playing && ready && video ? (
-        <div className="bg-[#0b0c0a] py-2">
-          <VideoPlayer status={video} title={post.title} maxVh={70} autoPlay className="rounded-none shadow-none" />
+        <div className="bg-[#0b0c0a]">
+          <FeedReel status={video} title={post.title} maxVh={70} />
         </div>
       ) : (
         <SlideCarousel slides={post.slides} accent={post.accent} title={post.title} sources={post.sources} size="feed" />
