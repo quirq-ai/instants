@@ -207,7 +207,7 @@ export function SourcesView({ sources, titles }: { sources: SourceStatus[]; titl
           <AlertDialogHeader>
             <AlertDialogTitle>Regenerate every post?</AlertDialogTitle>
             <AlertDialogDescription>
-              Recall will rewrite all {folders.length - counts.skipped} folders from scratch. This calls Claude for each
+              Instants will rewrite all {folders.length - counts.skipped} folders from scratch. This calls Claude for each
               one and can take many minutes. Existing posts are replaced as they finish.
             </AlertDialogDescription>
           </AlertDialogHeader>

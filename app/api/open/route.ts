@@ -3,6 +3,7 @@
 import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import { getRecord } from "@/lib/research/library";
+import { recordSourcePath } from "@/lib/research/store";
 import { localOnly } from "@/lib/server/local-only";
 
 export async function POST(request: Request) {
@@ -11,15 +12,16 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as { slug?: unknown } | null;
   const record = typeof body?.slug === "string" ? await getRecord(body.slug) : null;
   if (!record) return Response.json({ error: "Unknown post" }, { status: 404 });
-  const stat = await fs.stat(record.path).catch(() => null);
+  const target = recordSourcePath(record) ?? record.path;
+  const stat = await fs.stat(target).catch(() => null);
   if (!stat) return Response.json({ error: "The source folder no longer exists" }, { status: 410 });
 
   const [cmd, args] =
     process.platform === "darwin"
-      ? ["open", stat.isDirectory() ? [record.path] : ["-R", record.path]]
+      ? ["open", stat.isDirectory() ? [target] : ["-R", target]]
       : process.platform === "win32"
-        ? ["explorer", [record.path]]
-        : ["xdg-open", [record.path]];
+        ? ["explorer", [target]]
+        : ["xdg-open", [target]];
   try {
     await new Promise<void>((resolve, reject) =>
       execFile(/*turbopackIgnore: true*/ cmd, args, (error) => (error ? reject(error) : resolve())),

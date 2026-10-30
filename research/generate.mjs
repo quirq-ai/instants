@@ -2,6 +2,7 @@
 // backends (Messages API or local claude CLI) and output validation/repair.
 import { spawn } from "node:child_process";
 
+// Kept as "recall-4" after the rename to Instants so existing posts are not regenerated.
 export const PROMPT_VERSION = "recall-4";
 export const TOPICS = [
   "AI & Agents", "Developer Tools", "Simulation & Science", "Graphics & Visualization", "Media & Video",
@@ -140,7 +141,7 @@ const HOOKS = `Hook examples that work (vary the shape, never reuse a template):
 - "A weekend fork that ended up with more commits than the original."
 Avoid lists of three ("X, Y, Z: ..."), counted openers ("One A, two B, one C"), and hooks that repeat the summary's opening words.`;
 
-export const SYSTEM = `You are the editor of Recall, a private feed that turns someone's past research and experiments into Instagram style carousel posts so they can rediscover and show off their work. You write one post per research item, grounded entirely in the material provided.
+export const SYSTEM = `You are the editor of Instants, a private feed that turns someone's past research and experiments into Instagram style carousel posts so they can rediscover and show off their work. You write one post per research item, grounded entirely in the material provided.
 
 Rules:
 1. Slide 1 is type "cover". If a MEDIA image fits (a screenshot, render, scene), set cover.image to its URL. Cover heading is a hook, not the title.

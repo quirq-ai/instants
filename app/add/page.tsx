@@ -20,7 +20,7 @@ export default async function AddPage({
       <PageHeader
         eyebrow="Feed your research"
         title="Add research"
-        description="Drop in notes, data, screenshots or code. Recall reads it and writes a carousel post you can browse later."
+        description="Drop in notes, data, screenshots or code. Instants reads it and writes a carousel post you can browse later."
       />
       {record ? <CreatedPreview record={record} video={video} /> : <AddFlow missing={Boolean(created)} />}
 
@@ -35,7 +35,7 @@ export default async function AddPage({
               Or post from a folder
             </h2>
             <p className="text-sm text-muted-foreground">
-              Recall watches your experiment folders. Turn any new or changed folder into a post.
+              Instants watches your experiment folders. Turn any new or changed folder into a post.
             </p>
           </div>
         </div>

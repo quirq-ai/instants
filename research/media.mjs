@@ -1,5 +1,5 @@
 // Media: pick real images (and SVG diagrams) from a research folder and copy
-// them, downscaled, into public/research/media/<slug>/.
+// them, downscaled, into the store's media/<slug>/ (served at /research/media/<slug>/).
 import fs from "node:fs/promises";
 import path from "node:path";
 import { IMAGE_EXT, run } from "./collect.mjs";
@@ -89,24 +89,38 @@ export async function pickMedia(listing, slug) {
   return picked;
 }
 
-/** Copy planned media into public/research/media/<slug>/ (replacing what was there). */
-export async function copyMedia(appRoot, slug, planned) {
-  const dir = path.join(appRoot, "public", "research", "media", slug);
-  await fs.rm(dir, { recursive: true, force: true });
-  if (!planned.length) return [];
-  await fs.mkdir(dir, { recursive: true });
+/**
+ * Copy planned media into <mediaRoot>/<slug>/ (replacing what was there). Built in
+ * a sibling .tmp folder and swapped in by rename, so autosync never sees half a set.
+ */
+export async function copyMedia(mediaRoot, slug, planned) {
+  const dir = path.join(mediaRoot, slug);
+  if (!planned.length) {
+    await fs.rm(dir, { recursive: true, force: true });
+    return [];
+  }
+  const stage = path.join(mediaRoot, `.${slug}.${process.pid}.${Date.now()}.tmp`);
+  const old = `${stage}.old.tmp`;
+  await fs.mkdir(stage, { recursive: true });
   const urls = [];
-  for (const m of planned) {
-    const out = path.join(dir, path.basename(m.url));
-    try {
-      if (m.svg || m.outExt === ".gif") await fs.copyFile(m.source, out);
-      else {
-        const args = ["-Z", "1400"];
-        if (m.outExt === ".jpg") args.push("-s", "format", "jpeg", "-s", "formatOptions", "82");
-        await run("sips", [...args, m.source, "--out", out]);
-      }
-      urls.push(m.url);
-    } catch {}
+  try {
+    for (const m of planned) {
+      const out = path.join(stage, path.basename(m.url));
+      try {
+        if (m.svg || m.outExt === ".gif") await fs.copyFile(m.source, out);
+        else {
+          const args = ["-Z", "1400"];
+          if (m.outExt === ".jpg") args.push("-s", "format", "jpeg", "-s", "formatOptions", "82");
+          await run("sips", [...args, m.source, "--out", out]);
+        }
+        urls.push(m.url);
+      } catch {}
+    }
+    await fs.rename(dir, old).catch(() => {});
+    await fs.rename(stage, dir);
+  } finally {
+    await fs.rm(stage, { recursive: true, force: true });
+    await fs.rm(old, { recursive: true, force: true });
   }
   return urls;
 }

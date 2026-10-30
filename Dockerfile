@@ -1,9 +1,9 @@
-# Recall: build once, serve on port 3000.
-#   docker build -t recall .
-#   docker run -p 3000:3000 recall
+# Instants: build once, serve on port 3000.
+#   docker build -t instants .
+#   docker run -p 3000:3000 instants
 # To generate posts inside the container, mount research folders and give it a key:
 #   docker run -p 3000:3000 -e ANTHROPIC_API_KEY=... \
-#     -v "$PWD/.research-cache:/app/.research-cache" -v /path/to/research:/research recall
+#     -v "$PWD/.research-cache:/app/.research-cache" -v /path/to/research:/research instants
 
 FROM node:22-bookworm-slim AS deps
 WORKDIR /app
@@ -26,7 +26,7 @@ RUN apt-get update \
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000 \
-    RECALL_ROOTS=/research
+    INSTANTS_ROOTS=/research
 COPY --from=build /app ./
 RUN mkdir -p /research && chown -R node:node /app /research
 USER node

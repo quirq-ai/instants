@@ -1,5 +1,5 @@
 {
-  "name": "recall",
+  "name": "instants",
   "version": "0.1.0",
   "private": true,
   "engines": {
@@ -12,7 +12,8 @@
     "video": "node scripts/video.mjs",
     "start": "next start --hostname 127.0.0.1 --port 5180",
     "lint": "eslint . --ignore-pattern .next",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "migrate-store": "node scripts/migrate-store.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

@@ -284,7 +284,7 @@ export function AddFlow({ missing = false }: { missing?: boolean }) {
           id="add-title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Recall will suggest one"
+          placeholder="Instants will suggest one"
           className="w-full rounded-[var(--radius-sm)] border border-line bg-surface px-3.5 py-2.5 text-[15px] text-ink placeholder:text-faint focus-visible:outline-2 focus-visible:outline-[var(--focus)]"
         />
       </div>

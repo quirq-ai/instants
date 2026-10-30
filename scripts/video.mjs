@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// Make a video for one Recall post.
+// Make a video for one Instants post.
 //   npm run video -- <slug> [--aspect 9:16|1:1|16:9] [--length 45]
-//   RECALL_VIDEO_DRY=1 npm run video -- <slug>    simulated agent, tiny test mp4
+//   INSTANTS_VIDEO_DRY=1 npm run video -- <slug>    simulated agent, tiny test mp4
 import { runVideo } from "../research/video.mjs";
 
 const args = process.argv.slice(2);

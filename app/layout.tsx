@@ -11,11 +11,11 @@ const serif = Instrument_Serif({ subsets: ["latin"], weight: "400", style: ["nor
 const mono = JetBrains_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-jetbrains" });
 
 export const metadata: Metadata = {
-  title: { default: "Recall", template: "%s · Recall" },
-  description: "Everything you have researched, turned into posts you can browse.",
+  title: { default: "Instants", template: "%s · Instants" },
+  description: "Instants: everything you have researched, kept in the Curie library as posts you can browse.",
   icons: {
     icon: `data:image/svg+xml,${encodeURIComponent(
-      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#16150f"/><path d="M20 44V20h14a8 8 0 0 1 0 16H20m14 0 10 8" fill="none" stroke="#83d63a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#16150f"/><path d="M32 11c1.6 11.2 9.8 19.4 21 21-11.2 1.6-19.4 9.8-21 21-1.6-11.2-9.8-19.4-21-21 11.2-1.6 19.4-9.8 21-21z" fill="#83d63a"/></svg>`,
     )}`,
   },
 };
@@ -36,7 +36,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var t=localStorage.getItem('recall-theme');if(t==='dark'||t==='light')document.documentElement.dataset.theme=t}catch(e){}`,
+            __html: `try{var t=localStorage.getItem('instants-theme')||localStorage.getItem('recall-theme');if(t==='dark'||t==='light')document.documentElement.dataset.theme=t}catch(e){}`,
           }}
         />
       </head>

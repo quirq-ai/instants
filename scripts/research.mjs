@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Turn local research folders into Recall posts.
+// Turn local research folders into Instants posts.
 //   npm run research                    every folder under the default roots (cached)
 //   npm run research -- --force         regenerate everything
 //   npm run research -- <path...>       only these folders or files

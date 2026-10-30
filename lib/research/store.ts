@@ -1,0 +1,25 @@
+// Typed entry to the content store shared with research/*.mjs (research/store.mjs).
+export {
+  CACHE_DIR,
+  LOCAL_STORE,
+  SPACE_ROOT,
+  SPACE_CONFIG,
+  VIDEOS_WORK,
+  PROJECT_RE,
+  MANIFEST,
+  readSpaceConfig,
+  writeSpaceConfig,
+  spaceDirFor,
+  storeDir,
+  postsDir,
+  mediaDir,
+  videosDir,
+  sourcesDir,
+  resolveInStore,
+  scaffoldStore,
+  mergeTree,
+  migrateStore,
+  ensureStore,
+  recordSourcePath,
+} from "@/research/store.mjs";
+export type { SpaceConfig } from "@/research/store.mjs";

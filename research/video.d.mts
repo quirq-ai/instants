@@ -2,7 +2,6 @@ import type { VideoStatus } from "../lib/research/types";
 
 export type VideoAspect = NonNullable<VideoStatus["aspect"]>;
 export declare const VIDEOS_CACHE: string;
-export declare const VIDEOS_PUBLIC: string;
 export declare const VIDEO_TIMEOUT: number;
 export declare const ASPECTS: Record<VideoAspect, [number, number]>;
 export declare function statusFile(slug: string): string;

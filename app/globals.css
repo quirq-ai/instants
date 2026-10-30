@@ -3,7 +3,7 @@
 @import "../vendor/shadcn-tailwind-4.13.0.css";
 
 /*
-  Recall design tokens. Light is the default; dark follows the OS unless the
+  Instants design tokens. Light is the default; dark follows the OS unless the
   user picked a theme (html[data-theme]). Every surface reads these tokens.
 */
 :root {

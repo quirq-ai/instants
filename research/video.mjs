@@ -1,16 +1,14 @@
-// Video: turn one Recall post into an MP4 by running the HyperFrames skill in
-// an unattended local `claude` agent scoped to .research-cache/videos/<slug>/.
-// Status lives in .research-cache/videos/<slug>/status.json; the finished file
-// is copied to public/research/videos/<slug>.mp4 (+ .jpg poster).
+// Video: turn one Instants post into an MP4 by running the HyperFrames skill in
+// an unattended local `claude` agent scoped to .research-cache/videos-work/<slug>/.
+// Live status lives in .research-cache/videos-work/<slug>/status.json (local);
+// the finished file is copied to the store's videos/<slug>.mp4 (+ .jpg poster,
+// + .status.json with the ready result so other machines see it).
 import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { ensureStore, mediaDir, postsDir, videosDir, VIDEOS_WORK } from "./store.mjs";
 
-const APP_ROOT = import.meta.dirname ? path.resolve(import.meta.dirname, "..") : process.cwd();
-export const VIDEOS_CACHE = path.join(APP_ROOT, ".research-cache", "videos");
-export const VIDEOS_PUBLIC = path.join(APP_ROOT, "public", "research", "videos");
-const POSTS_DIR = path.join(APP_ROOT, ".research-cache", "posts");
-const MEDIA_DIR = path.join(APP_ROOT, "public", "research", "media");
+export const VIDEOS_CACHE = VIDEOS_WORK;
 
 export const VIDEO_TIMEOUT = 45 * 60 * 1000;
 const PERSIST_MS = 2000;
@@ -46,8 +44,7 @@ export async function readVideoStatus(slug) {
 export async function deleteVideo(slug) {
   if (!validSlug(slug)) throw new Error("bad slug");
   await fs.rm(path.join(VIDEOS_CACHE, slug), { recursive: true, force: true });
-  await fs.rm(path.join(VIDEOS_PUBLIC, `${slug}.mp4`), { force: true });
-  await fs.rm(path.join(VIDEOS_PUBLIC, `${slug}.jpg`), { force: true });
+  for (const ext of [".mp4", ".jpg", ".status.json"]) await fs.rm(path.join(/*turbopackIgnore: true*/ videosDir(), `${slug}${ext}`), { force: true });
 }
 
 /** Run a short command, resolve stdout; reject on non-zero exit. */
@@ -110,10 +107,10 @@ async function prepareInput(record, dir) {
   await fs.rm(input, { recursive: true, force: true });
   await fs.mkdir(input, { recursive: true });
   const assets = [];
-  const mediaDir = path.join(MEDIA_DIR, record.slug);
-  const files = await fs.readdir(mediaDir).catch(() => []);
+  const media = path.join(mediaDir(), record.slug);
+  const files = await fs.readdir(media).catch(() => []);
   for (const name of files) {
-    await fs.copyFile(path.join(mediaDir, name), path.join(input, name)).catch(() => {});
+    await fs.copyFile(path.join(media, name), path.join(input, name)).catch(() => {});
     const url = `/research/media/${record.slug}/${name}`;
     const shown = record.post.slides.find((s) => (s.type === "image" || s.type === "cover") && s.image === url);
     const what = shown ? shown.caption || shown.heading || `${shown.type} slide image` : "media from the research folder";
@@ -232,7 +229,7 @@ function runAgent({ cwd, prompt, signal, t }) {
         "-p",
         "--output-format", "stream-json",
         "--verbose",
-        "--model", process.env.RECALL_VIDEO_MODEL || "sonnet",
+        "--model", (process.env.INSTANTS_VIDEO_MODEL ?? process.env.RECALL_VIDEO_MODEL) || "sonnet",
         "--permission-mode", "acceptEdits",
         "--allowedTools", "Bash Read Write Edit Glob Grep Skill TodoWrite",
       ],
@@ -334,7 +331,7 @@ async function dryAgent({ dir, signal, t, aspect, length }) {
   for (const [text, stage] of steps) {
     if (signal?.aborted) throw signal.reason instanceof Error ? signal.reason : new Error("cancelled");
     t.log(text, stage);
-    await new Promise((r) => setTimeout(r, Number(process.env.RECALL_VIDEO_DRY_STEP_MS) || 400));
+    await new Promise((r) => setTimeout(r, Number((process.env.INSTANTS_VIDEO_DRY_STEP_MS ?? process.env.RECALL_VIDEO_DRY_STEP_MS)) || 400));
   }
   const [w, h] = ASPECTS[aspect];
   const out = path.join(dir, "project", "renders", "dry.mp4");
@@ -354,16 +351,17 @@ export async function runVideo({ slug, aspect = "9:16", length = 45, onStatus, s
   if (!validSlug(slug)) throw new Error("bad slug");
   if (!ASPECTS[aspect]) throw new Error(`aspect must be one of ${Object.keys(ASPECTS).join(", ")}`);
   length = Math.round(Math.min(120, Math.max(10, Number(length) || 45)));
+  await ensureStore();
   const dir = path.join(VIDEOS_CACHE, slug);
   const t = tracker(slug, { slug, state: "queued", startedAt: new Date().toISOString(), aspect, log: [], stage: "Queued" }, onStatus);
   await t.set({});
   try {
-    const record = await fs.readFile(path.join(POSTS_DIR, `${slug}.json`), "utf8").then(JSON.parse).catch(() => null);
+    const record = await fs.readFile(path.join(postsDir(), `${slug}.json`), "utf8").then(JSON.parse).catch(() => null);
     if (!record?.post) throw new Error(`No post named "${slug}".`);
     t.log("Preparing inputs", "Preparing");
     const assets = await prepareInput(record, dir);
     await t.set({ state: "running" });
-    const dry = process.env.RECALL_VIDEO_DRY === "1";
+    const dry = (process.env.INSTANTS_VIDEO_DRY ?? process.env.RECALL_VIDEO_DRY) === "1";
     t.log(dry ? "Dry run: simulating the agent" : "Starting the video agent");
     const result = dry
       ? await dryAgent({ dir, signal, t, aspect, length })
@@ -378,20 +376,21 @@ export async function runVideo({ slug, aspect = "9:16", length = 45, onStatus, s
     if (!mp4) throw new Error(result.videoError || "the agent finished without producing an MP4");
 
     t.log("Copying video and making poster", "Finishing");
-    await fs.mkdir(VIDEOS_PUBLIC, { recursive: true });
-    const outMp4 = path.join(VIDEOS_PUBLIC, `${slug}.mp4`);
-    const outJpg = path.join(VIDEOS_PUBLIC, `${slug}.jpg`);
+    const VIDEOS_OUT = videosDir();
+    await fs.mkdir(VIDEOS_OUT, { recursive: true });
+    const outMp4 = path.join(VIDEOS_OUT, `${slug}.mp4`);
+    const outJpg = path.join(VIDEOS_OUT, `${slug}.jpg`);
     await fs.copyFile(mp4, `${outMp4}.tmp`);
     await fs.rename(`${outMp4}.tmp`, outMp4);
     let poster;
+    const tmpJpg = path.join(VIDEOS_OUT, `.${slug}.poster.tmp.jpg`);
     try {
-      await run(FFMPEG, ["-y", "-loglevel", "error", "-ss", "1", "-i", outMp4, "-frames:v", "1", "-q:v", "3", outJpg], { signal });
-      poster = `/research/videos/${slug}.jpg`;
+      await run(FFMPEG, ["-y", "-loglevel", "error", "-ss", "1", "-i", outMp4, "-frames:v", "1", "-q:v", "3", tmpJpg], { signal });
     } catch {
-      await run(FFMPEG, ["-y", "-loglevel", "error", "-i", outMp4, "-frames:v", "1", "-q:v", "3", outJpg], { signal })
-        .then(() => (poster = `/research/videos/${slug}.jpg`))
-        .catch(() => {});
+      await run(FFMPEG, ["-y", "-loglevel", "error", "-i", outMp4, "-frames:v", "1", "-q:v", "3", tmpJpg], { signal }).catch(() => {});
     }
+    if (await fs.rename(tmpJpg, outJpg).then(() => true, () => false)) poster = `/research/videos/${slug}.jpg`;
+    await fs.rm(tmpJpg, { force: true });
     let durationSec;
     try {
       const out = await run(FFPROBE, ["-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", outMp4], { signal });
@@ -406,6 +405,7 @@ export async function runVideo({ slug, aspect = "9:16", length = 45, onStatus, s
       durationSec,
       error: undefined,
     });
+    await writeJson(path.join(VIDEOS_OUT, `${slug}.status.json`), { ...structuredClone(t.status), log: [] });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     t.log(`Failed: ${message}`, "Failed");

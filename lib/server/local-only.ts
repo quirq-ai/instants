@@ -13,7 +13,7 @@ function hostname(value: string) {
 
 /** Null when the request is allowed, otherwise a reason to reject it. */
 export function rejectNonLocal(request: Request): string | null {
-  if (!LOOPBACK.has(hostname(request.headers.get("host") ?? ""))) return "Recall only accepts requests on localhost.";
+  if (!LOOPBACK.has(hostname(request.headers.get("host") ?? ""))) return "Instants only accepts requests on localhost.";
   const origin = request.headers.get("origin");
   if (origin && !LOOPBACK.has(hostname(origin))) return "Cross-site requests are not allowed.";
   const site = request.headers.get("sec-fetch-site");

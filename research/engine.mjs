@@ -1,23 +1,21 @@
-// Recall engine: scan roots, collect material, generate posts with Claude,
-// copy media, and write ResearchRecord JSON to .research-cache/posts.
+// Instants engine: scan roots, collect material, generate posts with Claude,
+// copy media, and write ResearchRecord JSON into the content store (store.mjs).
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { collect, folderMeta, isReadable, IMAGE_EXT, listFiles, walk } from "./collect.mjs";
 import { copyMedia, pickMedia } from "./media.mjs";
 import { buildPrompt, generatePost, PROMPT_VERSION } from "./generate.mjs";
+import { ensureStore, mediaDir, postsDir, sourcesDir, storeDir } from "./store.mjs";
 
 // Bundled by Next, import.meta.dirname is undefined; the server runs from the app root.
 const APP_ROOT = import.meta.dirname ? path.resolve(import.meta.dirname, "..") : process.cwd();
 export const CACHE_DIR = path.join(APP_ROOT, ".research-cache");
-export const POSTS_DIR = path.join(CACHE_DIR, "posts");
-export const UPLOADS_DIR = path.join(CACHE_DIR, "uploads");
 const SOURCES_FILE = path.join(CACHE_DIR, "sources.json");
-const MEDIA_DIR = path.join(APP_ROOT, "public", "research", "media");
 
-// RECALL_ROOTS (colon separated) overrides the default: the folder this app lives in.
-export const DEFAULT_ROOTS = process.env.RECALL_ROOTS
-  ? process.env.RECALL_ROOTS.split(":").filter(Boolean).map((root) => path.resolve(root))
+// INSTANTS_ROOTS (or the older RECALL_ROOTS, colon separated) overrides the default: the folder this app lives in.
+export const DEFAULT_ROOTS = (process.env.INSTANTS_ROOTS ?? process.env.RECALL_ROOTS)
+  ? (process.env.INSTANTS_ROOTS ?? process.env.RECALL_ROOTS).split(":").filter(Boolean).map((root) => path.resolve(root))
   : [path.dirname(APP_ROOT)];
 
 const LOOSE_FILE = /\.(pdf|md|txt|html|csv|json)$/i;
@@ -35,6 +33,8 @@ export const slugify = (value) =>
     .slice(0, 60) || "post";
 
 async function readRecords() {
+  await ensureStore();
+  const POSTS_DIR = postsDir();
   const files = await fs.readdir(POSTS_DIR).catch(() => []);
   const records = await Promise.all(
     files
@@ -48,8 +48,19 @@ async function readRecords() {
  * Pick a slug for a path: reuse its record's slug, else a free one. Synchronous
  * and recorded in `reserved` so concurrent workers never pick the same slug.
  */
+/** "sources/<name>" when target is a direct child of the store's sources folder, else null. */
+function storeSourceRel(target) {
+  return path.dirname(path.resolve(target)) === path.resolve(sourcesDir()) ? `sources/${path.basename(target)}` : null;
+}
+
+/** The record already made from this target (by path, or by store source folder). */
+function recordFor(target, records) {
+  const rel = storeSourceRel(target);
+  return records.find((r) => r.path === target || (rel && r.sourceDir === rel));
+}
+
 function slugFor(target, records, reserved) {
-  const existing = records.find((r) => r.path === target);
+  const existing = recordFor(target, records);
   if (existing) {
     reserved.add(existing.slug);
     return existing.slug;
@@ -159,6 +170,12 @@ export async function resolveWatchedTarget(target) {
   const resolved = path.resolve(target);
   const real = await fs.realpath(resolved).catch(() => null);
   if (!real || real !== resolved) return null;
+  // Store sources (uploads and sources arriving from a space) are upload-style targets.
+  const srcReal = await fs.realpath(sourcesDir()).catch(() => null);
+  if (srcReal && path.dirname(real) === srcReal) {
+    const stat = await fs.lstat(real).catch(() => null);
+    return stat?.isDirectory() && !path.basename(real).startsWith(".") ? real : null;
+  }
   const appReal = await fs.realpath(APP_ROOT).catch(() => APP_ROOT);
   if (real === appReal || isInside(appReal, real)) return null;
   for (const root of DEFAULT_ROOTS) {
@@ -190,7 +207,8 @@ async function patchSources(results) {
 /** Collect, generate (or reuse cache), copy media, and write one record. */
 async function processTarget(target, { force, emit, records, reserved, signal }) {
   const name = path.basename(target);
-  const isUpload = isInside(UPLOADS_DIR, target);
+  const sourceRel = storeSourceRel(target);
+  const isUpload = Boolean(sourceRel);
   // Reserve the slug before the first await so parallel workers cannot collide.
   const slug = slugFor(target, records, reserved);
   emit({ type: "stage", name, stage: "collecting" });
@@ -218,7 +236,7 @@ async function processTarget(target, { force, emit, records, reserved, signal })
     .digest("hex")
     .slice(0, 16);
   const cached = records.find((r) => r.slug === slug);
-  if (!force && cached && cached.hash === hash && cached.path === target) {
+  if (!force && cached && cached.hash === hash && recordFor(target, [cached])) {
     emit({ type: "stage", name, stage: "cached" });
     return { slug };
   }
@@ -251,7 +269,7 @@ async function processTarget(target, { force, emit, records, reserved, signal })
   if (signal?.aborted) throw abortError(signal);
 
   emit({ type: "stage", name, stage: "rendering", detail: `${media.length} images` });
-  const copied = await copyMedia(APP_ROOT, slug, media);
+  const copied = await copyMedia(mediaDir(), slug, media);
   const ok = new Set(copied);
   post.slides = post.slides.filter((s) => s.type !== "image" || ok.has(s.image));
   if (post.slides[0]?.image && !ok.has(post.slides[0].image)) delete post.slides[0].image;
@@ -263,6 +281,7 @@ async function processTarget(target, { force, emit, records, reserved, signal })
     name: displayName,
     path: target,
     origin: isUpload ? "upload" : "folder",
+    ...(sourceRel ? { sourceDir: sourceRel } : {}),
     files: collected.files,
     media: copied,
     occurredAt: meta.git?.last || new Date(newest || Date.now()).toISOString(),
@@ -270,7 +289,7 @@ async function processTarget(target, { force, emit, records, reserved, signal })
     meta,
     post,
   };
-  await writeJson(path.join(POSTS_DIR, `${slug}.json`), record);
+  await writeJson(path.join(postsDir(), `${slug}.json`), record);
   return { slug, record };
 }
 
@@ -329,43 +348,57 @@ export async function runGeneration({ targets, force = false, concurrency = 3, o
 const safeName = (name) =>
   path.basename(String(name || "file")).replace(/[^\w.\- ]+/g, "_").replace(/^\.+/, "").slice(0, 120) || "file";
 
-/** Save pasted text and uploaded files into .research-cache/uploads/<slug>/; returns the folder. */
+/** Save pasted text and uploaded files into the store's sources/<slug>/; returns the folder. */
 export async function ingestUpload({ title, text, files = [] } = {}) {
+  await ensureStore();
+  const UPLOADS_DIR = sourcesDir();
   const label = (title || "").trim() || files[0]?.name?.replace(/\.[^.]+$/, "") || "Untitled note";
   const base = slugify(label);
   await fs.mkdir(UPLOADS_DIR, { recursive: true });
   let slug = base;
   for (let n = 2; ; n++) {
     try {
-      await fs.mkdir(path.join(UPLOADS_DIR, slug));
+      await fs.mkdir(path.join(/*turbopackIgnore: true*/ UPLOADS_DIR, slug));
       break;
     } catch (error) {
       if (error.code !== "EEXIST") throw error;
       slug = `${base}-${n}`;
     }
   }
-  const dir = path.join(UPLOADS_DIR, slug);
-  await fs.writeFile(path.join(dir, ".upload.json"), JSON.stringify({ title: label, at: new Date().toISOString() }));
-  if (text && text.trim()) await fs.writeFile(path.join(dir, "notes.md"), `# ${label}\n\n${text.trim()}\n`);
-  const used = new Set();
-  for (const file of files) {
-    let name = safeName(file.name);
-    while (used.has(name)) name = `1-${name}`;
-    used.add(name);
-    await fs.writeFile(path.join(dir, name), file.buffer);
+  const dir = path.join(/*turbopackIgnore: true*/ UPLOADS_DIR, slug);
+  // Write into a hidden .tmp folder, then rename over the (empty) reserved one, so
+  // autosync and the sources watcher only ever see a complete upload.
+  const stage = path.join(/*turbopackIgnore: true*/ UPLOADS_DIR, `.${slug}.${process.pid}.tmp`);
+  try {
+    await fs.mkdir(stage, { recursive: true });
+    if (text && text.trim()) await fs.writeFile(path.join(stage, "notes.md"), `# ${label}\n\n${text.trim()}\n`);
+    const used = new Set();
+    for (const file of files) {
+      let name = safeName(file.name);
+      while (used.has(name)) name = `1-${name}`;
+      used.add(name);
+      await fs.writeFile(path.join(/*turbopackIgnore: true*/ stage, name), file.buffer);
+    }
+    await fs.writeFile(path.join(stage, ".upload.json"), JSON.stringify({ title: label, at: new Date().toISOString() }));
+    await fs.rename(stage, dir);
+  } catch (error) {
+    await fs.rm(stage, { recursive: true, force: true });
+    await fs.rmdir(dir).catch(() => {});
+    throw error;
   }
   return dir;
 }
 
-/** Remove a record, its media, and its upload folder if it came from an upload. */
+/** Remove a record, its media, and its source folder in the store if it came from an upload. */
 export async function deleteRecord(slug) {
   if (!/^[a-z0-9-]+$/.test(slug)) throw new Error("invalid slug");
-  const file = path.join(POSTS_DIR, `${slug}.json`);
+  const file = path.join(postsDir(), `${slug}.json`);
+  const UPLOADS_DIR = sourcesDir();
   const record = await fs.readFile(file, "utf8").then(JSON.parse).catch(() => null);
   await fs.rm(file, { force: true });
-  await fs.rm(path.join(MEDIA_DIR, slug), { recursive: true, force: true });
-  if (record?.origin === "upload" && typeof record.path === "string") {
-    const dir = path.resolve(record.path);
+  await fs.rm(path.join(mediaDir(), slug), { recursive: true, force: true });
+  if (record?.origin === "upload" && (record.sourceDir || typeof record.path === "string")) {
+    const dir = record.sourceDir ? path.join(storeDir(), record.sourceDir) : path.resolve(record.path);
     // Only a direct child of the uploads folder, never anything a crafted path escapes to.
     if (path.dirname(dir) === path.resolve(UPLOADS_DIR) && isInside(UPLOADS_DIR, dir))
       await fs.rm(dir, { recursive: true, force: true });

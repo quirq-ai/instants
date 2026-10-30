@@ -1,8 +1,6 @@
 import type { GenerateEvent, SourceStatus } from "../lib/research/types";
 
 export declare const CACHE_DIR: string;
-export declare const POSTS_DIR: string;
-export declare const UPLOADS_DIR: string;
 export declare const DEFAULT_ROOTS: string[];
 
 export declare function slugify(value: string): string;

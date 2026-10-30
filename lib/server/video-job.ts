@@ -6,10 +6,10 @@ import type { VideoStatus } from "@/lib/research/types";
 const STALE_MS = 50 * 60 * 1000;
 
 type Held = { id: number; slug: string; startedAt: number; controller: AbortController; promise?: Promise<VideoStatus> };
-const g = globalThis as unknown as { __recallVideoJob?: Held | null; __recallVideoSeq?: number };
+const g = globalThis as unknown as { __instantsVideoJob?: Held | null; __instantsVideoSeq?: number };
 
 const live = () => {
-  const held = g.__recallVideoJob;
+  const held = g.__instantsVideoJob;
   return held && Date.now() - held.startedAt < STALE_MS ? held : null;
 };
 
@@ -21,11 +21,11 @@ export const videoJob = {
   /** Start runVideo in the background (not tied to any request). Null when another job holds the lock. */
   start(options: { slug: string; aspect: NonNullable<VideoStatus["aspect"]>; length: number }): Promise<VideoStatus> | null {
     if (live()) return null;
-    g.__recallVideoJob?.controller.abort(new Error("stale video lock"));
-    const id = (g.__recallVideoSeq = (g.__recallVideoSeq ?? 0) + 1);
+    g.__instantsVideoJob?.controller.abort(new Error("stale video lock"));
+    const id = (g.__instantsVideoSeq = (g.__instantsVideoSeq ?? 0) + 1);
     const controller = new AbortController();
     const held: Held = { id, slug: options.slug, startedAt: Date.now(), controller };
-    g.__recallVideoJob = held;
+    g.__instantsVideoJob = held;
     let resolveFirst: (s: VideoStatus) => void;
     const first = new Promise<VideoStatus>((r) => (resolveFirst = r));
     held.promise = runVideo({ ...options, signal: controller.signal, onStatus: (s) => resolveFirst(s) })
@@ -38,7 +38,7 @@ export const videoJob = {
         return failed;
       })
       .finally(() => {
-        if (g.__recallVideoJob?.id === id) g.__recallVideoJob = null;
+        if (g.__instantsVideoJob?.id === id) g.__instantsVideoJob = null;
       });
     return first;
   },

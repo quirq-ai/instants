@@ -55,8 +55,7 @@ next-env.d.ts
 !/session/README.md
 /.instants/
 
-# Generated posts are shared; notes, uploads and scan state stay local.
-.research-cache/*
-!.research-cache/posts/
-# Rendered videos (public/research/videos) are committed; agent workdirs stay local.
-.research-cache/videos/
+# Everything Instants generates lives in the content store (.research-cache/store,
+# or the Spacehub clone under .research-cache/space/); activity, scan state, space
+# config and video working dirs stay local. None of it belongs in this repo.
+.research-cache/

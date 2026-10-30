@@ -16,6 +16,7 @@ import {
   Sun,
 } from "lucide-react";
 import { CommandPalette, type PaletteItem } from "@/components/search/command-palette";
+import { SyncDot } from "@/components/sources/space-card";
 
 const NAV = [
   { href: "/", label: "Feed", icon: Home },
@@ -45,7 +46,8 @@ function useTheme() {
     const next = theme === "dark" ? "light" : "dark";
     document.documentElement.dataset.theme = next;
     try {
-      localStorage.setItem("recall-theme", next);
+      localStorage.setItem("instants-theme", next);
+      localStorage.removeItem("recall-theme");
     } catch {}
     setTheme(next);
   }
@@ -54,19 +56,18 @@ function useTheme() {
 
 export function Logo({ className = "" }: { className?: string }) {
   return (
-    <Link href="/" className={`flex items-center gap-2 ${className}`} aria-label="Recall home">
+    <Link href="/" className={`flex items-center gap-2 ${className}`} aria-label="Instants home">
       <svg viewBox="0 0 64 64" className="size-7 shrink-0" aria-hidden>
         <rect width="64" height="64" rx="16" fill="var(--ink)" />
         <path
-          d="M20 44V20h14a8 8 0 0 1 0 16H20m14 0 10 8"
-          fill="none"
-          stroke="#83d63a"
-          strokeWidth="5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+          d="M32 11c1.6 11.2 9.8 19.4 21 21-11.2 1.6-19.4 9.8-21 21-1.6-11.2-9.8-19.4-21-21 11.2-1.6 19.4-9.8 21-21z"
+          fill="#83d63a"
         />
       </svg>
-      <span className="font-display text-[26px] leading-none tracking-tight">Recall</span>
+      <span className="flex flex-col">
+        <span className="font-display text-[26px] leading-none tracking-tight">Instants</span>
+        <span className="mt-0.5 font-mono text-[10px] uppercase leading-none tracking-[0.18em] text-[var(--muted)]">Curie library</span>
+      </span>
     </Link>
   );
 }
@@ -140,7 +141,10 @@ export function AppShell({
           Add research
         </Link>
         <div className="mt-auto flex items-center justify-between px-2 text-xs text-faint">
-          <span>{index.length} posts</span>
+          <span className="flex items-center gap-3">
+            {index.length} posts
+            <SyncDot />
+          </span>
           <button
             type="button"
             onClick={toggle}

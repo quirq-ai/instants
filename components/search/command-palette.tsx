@@ -52,7 +52,7 @@ export function CommandPalette({
     <CommandDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Search Recall"
+      title="Search Instants"
       description="Find a post, a topic or a page"
       className="top-[18%] translate-y-0 sm:max-w-xl"
     >

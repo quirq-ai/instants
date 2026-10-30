@@ -143,6 +143,7 @@ export type ResearchRecord = {
   name: string; // folder or upload name
   path: string; // absolute path of the source folder/file
   origin: "folder" | "upload";
+  sourceDir?: string; // store-relative source folder ("sources/<slug>") for uploaded and space sources
   files: string[]; // files the collector fed to Claude
   media: string[]; // media URLs available to slides ("/research/media/<slug>/x.jpg")
   occurredAt: string; // when the research last changed (ISO)
@@ -181,7 +182,7 @@ export type GenerateEvent =
   | { type: "error"; name: string; message: string }
   | { type: "end"; posts: number; failed: number };
 
-/** State of a post's video render (.research-cache/videos/<slug>/status.json). */
+/** State of a post's video render (.research-cache/videos-work/<slug>/status.json; ready results also in store videos/<slug>.status.json). */
 export type VideoStatus = {
   slug: string;
   state: "queued" | "running" | "ready" | "failed";

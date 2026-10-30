@@ -1,6 +1,7 @@
 import path from "node:path";
 import { ingestUpload, resolveWatchedTarget, runGeneration, scanRoots } from "@/research/engine.mjs";
 import { getRecord } from "@/lib/research/library";
+import { recordSourcePath } from "@/lib/research/store";
 import type { GenerateEvent } from "@/lib/research/types";
 import { rejectNonLocal } from "@/lib/server/local-only";
 import { job } from "@/lib/server/job";
@@ -27,7 +28,10 @@ async function resolveJson(body: JsonBody): Promise<{ targets: string[]; force: 
     const record = await getRecord(String(slug));
     if (!record) throw new BadRequest(`No post named "${slug}".`);
     if (record.origin === "upload") {
-      targets.add(record.path);
+      const source = recordSourcePath(record);
+      const real = source ? await resolveWatchedTarget(source) : null;
+      if (!real) throw new BadRequest(`The source folder of "${slug}" is missing.`);
+      targets.add(real);
       continue;
     }
     const real = await resolveWatchedTarget(record.path);

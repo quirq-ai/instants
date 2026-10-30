@@ -10,7 +10,7 @@ export default function Error({ error, retry }: { error: Error & { digest?: stri
       <div role="alert" className="flex min-h-[60vh] flex-col items-center justify-center text-center">
         <h1 className="font-display text-[40px] leading-none">Something went sideways</h1>
         <p className="mt-3 max-w-sm text-muted-foreground">
-          Recall could not load this page. Your research files are untouched.
+          Instants could not load this page. Your research files are untouched.
         </p>
         {error.digest && <p className="mt-2 font-mono text-xs text-faint">ref {error.digest}</p>}
         <button

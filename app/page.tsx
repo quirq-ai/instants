@@ -23,7 +23,7 @@ function Empty({ tab, filtered, total }: { tab: FeedTab; filtered: boolean; tota
       ? {
           icon: Sparkles,
           title: "No research posted yet",
-          body: "Point Recall at a folder of experiments, notes or data and it will turn each one into a post.",
+          body: "Point Instants at a folder of experiments, notes or data and it will turn each one into a post.",
         }
       : filtered
         ? { icon: Compass, title: "Nothing matches these filters", body: "Try another topic, switch to All posts, or make a video from any post." }

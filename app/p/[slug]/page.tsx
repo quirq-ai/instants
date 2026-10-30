@@ -87,6 +87,10 @@ export default async function PostPage({ params }: Props) {
               </div>
               <h1 className="mt-2 font-display text-[40px] leading-[1.05] tracking-tight md:text-[52px]">{post.title}</h1>
               <p className="mt-2 text-[17px] leading-snug text-ink-2">{post.hook}</p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {record.origin === "upload" ? "From Curie space source" : "From local folder"}{" "}
+                <span className="font-mono">{record.origin === "upload" ? (record.sourceDir ?? record.name) : record.name}</span>
+              </p>
             </header>
           }
           meta={
