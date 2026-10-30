@@ -1,0 +1,314 @@
+{
+  "slug": "perplexity-space",
+  "hash": "cbf105590b7c1ec1",
+  "name": "perplexity-space",
+  "path": "/Users/surshar/Programming/XO/ClaudeWorkspace/experiments/perplexity-space",
+  "origin": "folder",
+  "files": [
+    "README.md",
+    "db/README.md",
+    "ui/README.md",
+    "docs/rust/README.md",
+    "scripts/bench-netgtw-throughput.sh",
+    "scripts/benchmarks/README.md",
+    "scripts/disk-usage/README.md",
+    "space_smoke/scenarios/README.md",
+    "docs/book/SUMMARY.md",
+    "scripts/benchmarks/bench_feature_space.py",
+    "scripts/benchmarks/bench-runtime-environments.py",
+    "scripts/benchmarks/bench-sbx-balloon-summary.py",
+    "scripts/benchmarks/bench-sbx-balloon.py",
+    "scripts/benchmarks/bench-sbx-balloon.sh",
+    "scripts/benchmarks/bench-sbx-concurrent.py",
+    "scripts/benchmarks/bench-sbx-concurrent.sh",
+    "scripts/benchmarks/bench-sbx-density-starts.py"
+  ],
+  "media": [
+    "/research/media/perplexity-space/1.png",
+    "/research/media/perplexity-space/2.png",
+    "/research/media/perplexity-space/3.svg"
+  ],
+  "occurredAt": "2026-10-22T05:25:20.000Z",
+  "generatedAt": "2026-10-30T09:43:49.837Z",
+  "meta": {
+    "fileCount": 3399,
+    "bytes": 48556945,
+    "languages": [
+      {
+        "name": "Rust",
+        "share": 0.794
+      },
+      {
+        "name": "Python",
+        "share": 0.111
+      },
+      {
+        "name": "Shell",
+        "share": 0.043
+      },
+      {
+        "name": "Go",
+        "share": 0.037
+      },
+      {
+        "name": "TypeScript",
+        "share": 0.009
+      },
+      {
+        "name": "SQL",
+        "share": 0.004
+      }
+    ],
+    "stack": [
+      "Rust",
+      "Axum",
+      "Serde",
+      "Tokio",
+      "Python",
+      "Pydantic",
+      "Go",
+      "Node.js",
+      "Next.js",
+      "React"
+    ],
+    "git": {
+      "commits": 50,
+      "authors": 7,
+      "first": "2026-10-21T17:00:17.000Z",
+      "last": "2026-10-22T05:25:20.000Z",
+      "activity": [
+        {
+          "week": "2026-10-19",
+          "commits": 50
+        }
+      ],
+      "milestones": [
+        {
+          "date": "2026-10-21",
+          "subject": "leader-election smoke: run at the budget floor, outage first, in ~13 minutes (#753)"
+        },
+        {
+          "date": "2026-10-21",
+          "subject": "Add a pull request template and rules for descriptions (#796)"
+        },
+        {
+          "date": "2026-10-21",
+          "subject": "kind: run the reconcile-queue GC against a fake EC2 endpoint (#698)"
+        },
+        {
+          "date": "2026-10-21",
+          "subject": "fix(api): record ECW v2 create and connect route metrics (#803)"
+        },
+        {
+          "date": "2026-10-21",
+          "subject": "dispatcher: describe the deferral window as wall clock from first claim and name it when it runs out (#793)"
+        },
+        {
+          "date": "2026-10-21",
+          "subject": "internal-api: resolve named nodes only to existing registrations (#816)"
+        },
+        {
+          "date": "2026-10-22",
+          "subject": "kind: add an opt-in release-build lane (#704)"
+        },
+        {
+          "date": "2026-10-22",
+          "subject": "observability: read the cluster id from pplx-space-cluster-id (#834)"
+        }
+      ]
+    },
+    "formats": [
+      {
+        "ext": ".rs",
+        "count": 1937
+      },
+      {
+        "ext": ".py",
+        "count": 319
+      },
+      {
+        "ext": ".yaml",
+        "count": 200
+      },
+      {
+        "ext": ".sh",
+        "count": 195
+      },
+      {
+        "ext": ".toml",
+        "count": 160
+      },
+      {
+        "ext": ".md",
+        "count": 109
+      },
+      {
+        "ext": ".tf",
+        "count": 85
+      },
+      {
+        "ext": ".sql",
+        "count": 66
+      },
+      {
+        "ext": ".go",
+        "count": 44
+      },
+      {
+        "ext": ".snap",
+        "count": 43
+      },
+      {
+        "ext": ".json",
+        "count": 32
+      },
+      {
+        "ext": ".proto",
+        "count": 26
+      }
+    ]
+  },
+  "post": {
+    "title": "SPACE: Firecracker Sandbox Platform",
+    "kind": "Tool",
+    "topic": "Infrastructure",
+    "status": "working",
+    "hook": "A sandbox platform whose benchmarks check that memory survives suspend and restore.",
+    "summary": "SPACE is a Rust sandbox platform that runs code in isolated Firecracker microVMs behind an HTTP API. The repo has docs, a Kind dev setup, typed smoke scenarios and a set of worker-node benchmarks.",
+    "writeup": "## What it is\n\nSPACE (Sandboxed Platform for Agentic Code Execution) runs code in isolated Firecracker microVMs. Applications use an HTTP API to create Linux environments from templates, run commands, collect output and manage sandbox lifecycles. The repo holds 3399 files, 79.4% of them Rust, with Python, Shell and Go around it.\n\n## Why it exists\n\nAn agent, a user workspace or a code-running job needs its own execution environment. The application decides what to run and what to keep. SPACE manages the sandbox, its processes and the connection that carries command output.\n\n## How it works\n\nA template supplies the starting environment. A sandbox is an instance with its own VM and writable filesystem. Lifecycle changes are asynchronous: the API returns an operation ID to poll. Command output uses a separate data-plane connection with a session-scoped attachment token. Sandboxes can be kept, paused, suspended and woken. An E2B Compatibility Wrapper lets the tested E2B Python SDK talk to it.\n\n## What the repo shows\n\n- Database migrations are immutable once applied, with a checksum registry for reviewed equivalent edits.\n- Smoke tests are typed scenarios (ecw, network_policy, native, local) run across four Kind CI shards.\n- Benchmarks on one worker node cover concurrent lifecycle ops, create latency under density, and balloon suspend/restore. The balloon benchmark runs build, alloc-free, file-heavy and idle profiles, checksums guest memory and rootfs after each restore, and gates variants on at least 10% and 64 MiB smaller snapshot memory.\n- Git history shows 50 commits from 7 authors on 2026-10-21 and 2026-10-22.\n\n## Open questions\n\nThe benchmark docs describe the method but the material has no result numbers, so the snapshot-size gains from balloon variants are unmeasured here.",
+    "tags": [
+      "firecracker",
+      "microvm",
+      "sandbox",
+      "rust",
+      "benchmarks",
+      "kubernetes"
+    ],
+    "accent": "#3b82f6",
+    "sources": [
+      {
+        "id": "s1",
+        "path": "README.md",
+        "note": "overview, API model, repo layout"
+      },
+      {
+        "id": "s2",
+        "path": "db/README.md",
+        "note": "migration rules"
+      },
+      {
+        "id": "s6",
+        "path": "scripts/benchmarks/README.md",
+        "note": "balloon benchmark profiles"
+      },
+      {
+        "id": "s8",
+        "path": "space_smoke/scenarios/README.md",
+        "note": "smoke scenario categories"
+      },
+      {
+        "id": "s12",
+        "path": "scripts/benchmarks/bench-sbx-balloon-summary.py",
+        "note": "gate rules"
+      },
+      {
+        "id": "git",
+        "path": ".git"
+      }
+    ],
+    "slides": [
+      {
+        "type": "cover",
+        "heading": "Every sandbox gets its own microVM, and its memory gets checksummed",
+        "body": "SPACE runs agent code in Firecracker VMs behind an HTTP API.",
+        "image": "/research/media/perplexity-space/1.png"
+      },
+      {
+        "type": "table",
+        "heading": "Four workloads stress each suspend",
+        "columns": [
+          "Profile",
+          "Guest work per cycle"
+        ],
+        "rows": [
+          [
+            "build",
+            "Compiles generated C units with cc, or uses gzip"
+          ],
+          [
+            "alloc-free",
+            "Allocates 2 to 4 GiB of anonymous memory, then frees it"
+          ],
+          [
+            "file-heavy",
+            "Writes and deletes 1 GiB of 4 MiB files on the rootfs"
+          ],
+          [
+            "idle",
+            "Sleeps for --idle-secs seconds"
+          ]
+        ],
+        "src": "s6"
+      },
+      {
+        "type": "image",
+        "image": "/research/media/perplexity-space/2.png",
+        "caption": "Diagram of the order of checks in the force-upload in-flight path."
+      },
+      {
+        "type": "compare",
+        "heading": "Gate: when a variant may advance",
+        "left": {
+          "title": "Passes",
+          "points": [
+            "Median snapshot memory at least 10% below baseline",
+            "At least 64 MiB below baseline",
+            "Zero correctness failures"
+          ]
+        },
+        "right": {
+          "title": "Fails",
+          "points": [
+            "Any unverified cycle",
+            "Baseline itself has failures",
+            "Cycle missing the gate metric"
+          ]
+        },
+        "src": "s12"
+      },
+      {
+        "type": "timeline",
+        "heading": "Fifty commits in two days",
+        "events": [
+          {
+            "date": "2026-10-21",
+            "label": "Leader-election smoke run added",
+            "detail": "Run at the budget floor, outage first"
+          },
+          {
+            "date": "2026-10-21",
+            "label": "PR template and description rules"
+          },
+          {
+            "date": "2026-10-21",
+            "label": "ECW v2 create and connect metrics"
+          },
+          {
+            "date": "2026-10-22",
+            "label": "Opt-in release-build lane for Kind"
+          },
+          {
+            "date": "2026-10-22",
+            "label": "Cluster id read from a dedicated source"
+          }
+        ],
+        "src": "git"
+      },
+      {
+        "type": "takeaway",
+        "heading": "Isolation is only useful if state survives",
+        "body": "SPACE benchmarks suspend and restore by verifying SHA-256 checksums of memory and disk."
+      }
+    ]
+  }
+}

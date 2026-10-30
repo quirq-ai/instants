@@ -1,0 +1,200 @@
+{
+  "slug": "claude-messages",
+  "hash": "f4665a3ed45b6908",
+  "name": "claude-messages",
+  "path": "/Users/surshar/Programming/XO/ClaudeWorkspace/experiments/claude-messages",
+  "origin": "folder",
+  "files": [
+    "README.md",
+    "package.json",
+    "public/index.html",
+    "server.mjs"
+  ],
+  "media": [],
+  "occurredAt": "2026-10-09T02:23:16.284Z",
+  "generatedAt": "2026-10-30T09:42:19.826Z",
+  "meta": {
+    "fileCount": 4,
+    "bytes": 60509,
+    "languages": [
+      {
+        "name": "HTML",
+        "share": 0.579
+      },
+      {
+        "name": "JavaScript",
+        "share": 0.421
+      }
+    ],
+    "stack": [
+      "Node.js"
+    ],
+    "formats": [
+      {
+        "ext": ".md",
+        "count": 1
+      },
+      {
+        "ext": ".json",
+        "count": 1
+      },
+      {
+        "ext": ".html",
+        "count": 1
+      },
+      {
+        "ext": ".mjs",
+        "count": 1
+      }
+    ]
+  },
+  "post": {
+    "title": "Claude Messages",
+    "kind": "Tool",
+    "topic": "Developer Tools",
+    "status": "working",
+    "hook": "iMessage for your Claude Code sessions, in one Node file with no dependencies.",
+    "summary": "A local web app that lists every running Claude Code session as a chat thread, lets you message any of them, and can start new ones. It runs on plain Node 18 with no installs.",
+    "writeup": "## What it is\nClaude Messages is an iMessage-style window onto every Claude Code session running on one machine. The sidebar lists sessions, each thread shows that session's conversation, and a compose button starts a new session. You start it with `node server.mjs` and open http://127.0.0.1:4417.\n\n## Why\nSeveral Claude Code sessions can run at once across the terminal and Claude Desktop. This gives them one place to read and reply, with typing dots and approval buttons.\n\n## How it works\n- **Discovery:** it reads `~/.claude/sessions/<pid>.json`, the record each live process keeps.\n- **History:** it reads the tail of each session's transcript `.jsonl` (the last 1.5 MB) and then follows it.\n- **Sending:** a session started here gets a user line on its stdin. Any other session gets one frame on its inbox socket, the same one `SendMessage` uses.\n- **Approvals:** sessions started here run with `--permission-prompt-tool stdio`, so each request appears as a bubble with Allow and Deny.\n\nThe server listens on 127.0.0.1 only, rejects foreign Host or Origin headers, requires a token that changes each launch, and never reads session key files.\n\n## Limits\n- Messages to sessions started elsewhere arrive as from *another Claude session*, so they don't count as your approval.\n- Bypass-mode sessions hold messages for approval in their own window.\n- Replies come from the transcript, since the app has no reply address.\n- Sessions started here stop when the server stops.\n- macOS and Linux only.\n- It relies on undocumented internals, checked against Claude Code 2.1.260 and 2.1.293.\n\n## Open questions\nThe internals it depends on can change in any release, so the main risk is drift.",
+    "tags": [
+      "claude-code",
+      "node",
+      "chat-ui",
+      "sessions",
+      "local-first"
+    ],
+    "accent": "#83d63a",
+    "sources": [
+      {
+        "id": "s1",
+        "path": "README.md",
+        "note": "Purpose, config table, how it works, limits"
+      },
+      {
+        "id": "s2",
+        "path": "package.json",
+        "note": "Node >=18, no dependencies"
+      },
+      {
+        "id": "s3",
+        "path": "public/index.html",
+        "note": "New session form fields"
+      },
+      {
+        "id": "s4",
+        "path": "server.mjs",
+        "note": "Header comment and constants"
+      }
+    ],
+    "slides": [
+      {
+        "type": "cover",
+        "heading": "Text your Claude Code sessions like contacts",
+        "body": "A local iMessage-style window onto every running session, no dependencies."
+      },
+      {
+        "type": "table",
+        "heading": "Where each piece comes from",
+        "columns": [
+          "Part",
+          "Source"
+        ],
+        "rows": [
+          [
+            "Session list",
+            "~/.claude/sessions/<pid>.json"
+          ],
+          [
+            "A thread",
+            "transcript .jsonl, last 1.5 MB, then followed"
+          ],
+          [
+            "Typing dots",
+            "record status (busy)"
+          ],
+          [
+            "Send to own session",
+            "user line on stdin"
+          ],
+          [
+            "Send to other session",
+            "frame on its inbox socket"
+          ],
+          [
+            "Tool approvals",
+            "Allow and Deny bubbles"
+          ]
+        ],
+        "src": "s1"
+      },
+      {
+        "type": "code",
+        "heading": "Two ways to send a message",
+        "lang": "js",
+        "code": "// Discovery  <config>/sessions/<pid>.json, the record every live Claude Code process keeps.\n// History    each session's transcript, <config>/projects/<dir>/<sessionId>.jsonl, read from its tail.\n// Sending    a session started here gets a user line on its stream-json stdin; any other session\n//            gets one frame on its inbox socket (the record's messagingSocketPath).\n// The browser talks only to this server, which listens on 127.0.0.1 and checks a per-launch token.\n// No dependencies: Node 18 or later.",
+        "caption": "Header comment of server.mjs",
+        "src": "s4"
+      },
+      {
+        "type": "table",
+        "heading": "Four settings, all optional",
+        "columns": [
+          "Variable",
+          "Default",
+          "What it sets"
+        ],
+        "rows": [
+          [
+            "PORT",
+            "4417",
+            "The local port"
+          ],
+          [
+            "CLAUDE_BIN",
+            "claude",
+            "Executable for new sessions"
+          ],
+          [
+            "CLAUDE_MESSAGES_CWD",
+            "your home folder",
+            "Folder the New Session form suggests"
+          ],
+          [
+            "CLAUDE_CONFIG_DIR",
+            "~/.claude",
+            "Where sessions and transcripts live"
+          ]
+        ],
+        "src": "s1"
+      },
+      {
+        "type": "compare",
+        "heading": "Own sessions vs everyone else's",
+        "left": {
+          "title": "Started here",
+          "points": [
+            "Child process of the server",
+            "Messages go to stdin",
+            "Approvals show as Allow and Deny",
+            "Stop when the server stops"
+          ]
+        },
+        "right": {
+          "title": "Started elsewhere",
+          "points": [
+            "Messages go to the inbox socket",
+            "Arrive as from another Claude session",
+            "Not counted as your approval",
+            "Bypass mode holds them for approval"
+          ]
+        },
+        "src": "s1"
+      },
+      {
+        "type": "takeaway",
+        "heading": "A chat UI built on undocumented internals",
+        "body": "It works today on Claude Code 2.1.260 and 2.1.293, but the session records and frames can change in any release."
+      }
+    ]
+  }
+}

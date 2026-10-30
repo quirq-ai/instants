@@ -1,0 +1,227 @@
+{
+  "slug": "meet-transcripts",
+  "hash": "d936b3152304496b",
+  "name": "meet-transcripts",
+  "path": "/Users/surshar/Programming/XO/ClaudeWorkspace/experiments/meet-transcripts",
+  "origin": "folder",
+  "files": [
+    "README.md",
+    "attendee/server/README.md",
+    "attendee/server/docs/basics.md",
+    "attendee/server/docs/calendar_integration.md",
+    "attendee/server/docs/custom_async_transcription.md",
+    "attendee/server/docs/environment-variables.md",
+    "attendee/server/docs/faq.md",
+    "attendee/server/docs/participant_events.md",
+    "attendee/server/docs/realtime_audio.md",
+    "attendee/server/docs/realtime_video.md",
+    "attendee/server/docs/scheduled_bots.md",
+    "attendee/server/docs/signed_in_bots.md",
+    "attendee/server/docs/transcription.md"
+  ],
+  "media": [
+    "/research/media/meet-transcripts/1.png"
+  ],
+  "occurredAt": "2026-10-23T07:04:19.046Z",
+  "generatedAt": "2026-10-30T09:43:29.607Z",
+  "meta": {
+    "fileCount": 503,
+    "bytes": 8669235,
+    "languages": [
+      {
+        "name": "Python",
+        "share": 0.809
+      },
+      {
+        "name": "JavaScript",
+        "share": 0.091
+      },
+      {
+        "name": "HTML",
+        "share": 0.09
+      },
+      {
+        "name": "TypeScript",
+        "share": 0.008
+      },
+      {
+        "name": "Shell",
+        "share": 0.002
+      },
+      {
+        "name": "CSS",
+        "share": 0
+      }
+    ],
+    "stack": [
+      "Node.js",
+      "Next.js",
+      "React",
+      "Tailwind CSS",
+      "TypeScript"
+    ],
+    "formats": [
+      {
+        "ext": ".py",
+        "count": 350
+      },
+      {
+        "ext": ".html",
+        "count": 59
+      },
+      {
+        "ext": ".md",
+        "count": 20
+      },
+      {
+        "ext": ".json",
+        "count": 14
+      },
+      {
+        "ext": ".ts",
+        "count": 11
+      },
+      {
+        "ext": ".js",
+        "count": 11
+      },
+      {
+        "ext": ".tsx",
+        "count": 10
+      },
+      {
+        "ext": "(none)",
+        "count": 6
+      },
+      {
+        "ext": ".yaml",
+        "count": 4
+      },
+      {
+        "ext": ".txt",
+        "count": 3
+      },
+      {
+        "ext": ".svg",
+        "count": 3
+      },
+      {
+        "ext": ".css",
+        "count": 2
+      }
+    ]
+  },
+  "post": {
+    "title": "Meet Transcripts: Bot vs Meet API",
+    "kind": "Prototype",
+    "topic": "Developer Tools",
+    "status": "working",
+    "hook": "Two ways to get a Google Meet transcript, one view to compare them side by side.",
+    "summary": "A Next.js app that fetches Google Meet transcripts through a self-hosted Attendee bot and through the Google Meet REST API, normalizing both into one shape. Setup scripts and a pinned Attendee checkout make it reproducible.",
+    "writeup": "## What it is\nMeet Transcripts is a Next.js app that gets Google Meet transcripts two ways and shows them in the same view: a self-hosted Attendee bot, and Google's own Meet REST API. Both are converted to a shared `TranscriptLine` shape (`lib/transcript.ts`), so you can run both on one meeting and compare.\n\n## Why\nThe two routes have opposite tradeoffs. The bot works on any Meet link and any account, runs live, but shows up as a participant someone must admit. The REST API is invisible and reads Meet's own transcript, but only for meetings you organized with transcription on, and entries are kept for 30 days.\n\n## How it works\n- **Bot:** `POST /api/v1/bots` with the Meet link, `meeting_closed_captions` for transcription and `recording_settings.format: \"none\"`, so no S3 bucket is needed. The `/bot/[id]` page re-renders every 3 seconds and reads the transcript endpoint until the bot reaches `ended`.\n- **Google API:** list conference records, fetch transcripts and entries, then map participants to display names.\n- **Setup:** `./attendee/setup.sh` clones Attendee at a pinned commit, builds one image, starts the stack, runs migrations and mints an API key into `.env.local`. It is safe to re-run.\n- All Attendee and Google calls happen server-side, so no key reaches the browser.\n\n## Findings\nThe first Attendee build takes 10 to 20 minutes and needs about 6 GB of Docker disk. The image is `linux/amd64`, so Apple Silicon runs it under emulation. Google tokens are stored in a local file, fine for one user only.\n\n## Open questions\nCaptions are free but less accurate than a provider like Deepgram, which Attendee already supports. Webhooks could replace polling, and tokens need a per-user store before the app is shared.",
+    "tags": [
+      "google-meet",
+      "transcription",
+      "attendee",
+      "nextjs",
+      "meeting-bots",
+      "oauth"
+    ],
+    "accent": "#83d63a",
+    "sources": [
+      {
+        "id": "s1",
+        "path": "README.md",
+        "note": "Comparison table, setup, bot and API flows, limits"
+      },
+      {
+        "id": "s2",
+        "path": "attendee/server/README.md",
+        "note": "What Attendee is and how its API works"
+      },
+      {
+        "id": "s13",
+        "path": "attendee/server/docs/transcription.md",
+        "note": "Caption vs third-party transcription"
+      }
+    ],
+    "slides": [
+      {
+        "type": "cover",
+        "heading": "Send a bot into the call, or ask Google afterwards?",
+        "body": "Two routes to a Google Meet transcript, built into one Next.js app."
+      },
+      {
+        "type": "table",
+        "heading": "Bot vs Google Meet REST API",
+        "columns": [
+          "Bot (Attendee)",
+          "Google Meet REST API"
+        ],
+        "rows": [
+          [
+            "How",
+            "A bot joins and reads Meet's live captions"
+          ],
+          [
+            "Which meetings",
+            "Any Meet link, any account"
+          ],
+          [
+            "When",
+            "Live, while the call runs"
+          ],
+          [
+            "Needs",
+            "Docker"
+          ],
+          [
+            "Visible in the call",
+            "Yes, as a participant someone has to admit"
+          ]
+        ],
+        "src": "s1",
+        "highlight": 1
+      },
+      {
+        "type": "code",
+        "heading": "The bot loop",
+        "lang": "text",
+        "code": "1. POST /api/v1/bots with the Meet link,\n   transcription_settings.meeting_closed_captions\n   and recording_settings.format: \"none\"\n2. The bot joins as a guest and waits in the lobby.\n   Someone in the call admits it.\n3. /bot/[id] re-renders every 3 seconds and reads\n   GET /api/v1/bots/{id}/transcript\n   until the bot reaches ended.",
+        "caption": "Nothing is recorded, so no S3 bucket is needed.",
+        "src": "s1"
+      },
+      {
+        "type": "bigNumbers",
+        "heading": "What self-hosting costs",
+        "items": [
+          {
+            "value": "10 to 20 minutes",
+            "label": "First Docker build",
+            "src": "s1"
+          },
+          {
+            "value": "6 GB",
+            "label": "Docker disk needed",
+            "src": "s1"
+          },
+          {
+            "value": "30 days",
+            "label": "Google keeps transcript entries",
+            "src": "s1"
+          },
+          {
+            "value": "3 seconds",
+            "label": "Transcript page refresh",
+            "src": "s1"
+          }
+        ]
+      },
+      {
+        "type": "takeaway",
+        "heading": "Normalize first, compare second",
+        "body": "Mapping both sources to one TranscriptLine shape makes the tradeoffs easy to see on the same meeting."
+      }
+    ]
+  }
+}

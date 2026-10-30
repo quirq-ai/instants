@@ -1,0 +1,423 @@
+{
+  "slug": "rea",
+  "hash": "c6cf625f69515d68",
+  "name": "rea",
+  "path": "/Users/surshar/Programming/XO/ClaudeWorkspace/experiments/rea",
+  "origin": "folder",
+  "files": [
+    "README.md",
+    "licenses/README.md",
+    "third_party/README.md",
+    "website/README.md",
+    "CHANGELOG.md",
+    "docs/readme/README_ar.md",
+    "docs/readme/README_de.md",
+    "docs/readme/README_es.md",
+    "docs/readme/README_fa.md",
+    "docs/readme/README_fr.md",
+    "docs/readme/README_id.md"
+  ],
+  "media": [
+    "/research/media/rea/1.svg",
+    "/research/media/rea/2.svg",
+    "/research/media/rea/3.jpg"
+  ],
+  "occurredAt": "2026-10-13T17:09:19.000Z",
+  "generatedAt": "2026-10-30T09:44:00.465Z",
+  "meta": {
+    "fileCount": 3400,
+    "bytes": 39467463,
+    "languages": [
+      {
+        "name": "TypeScript",
+        "share": 0.829
+      },
+      {
+        "name": "JavaScript",
+        "share": 0.101
+      },
+      {
+        "name": "HTML",
+        "share": 0.026
+      },
+      {
+        "name": "Python",
+        "share": 0.019
+      },
+      {
+        "name": "Java",
+        "share": 0.015
+      },
+      {
+        "name": "C++",
+        "share": 0.004
+      }
+    ],
+    "stack": [
+      "Node.js",
+      "Zod",
+      "TypeScript",
+      "Vitest",
+      "Python"
+    ],
+    "git": {
+      "commits": 2493,
+      "authors": 202,
+      "first": "2026-04-14T00:51:30.000Z",
+      "last": "2026-10-13T17:09:19.000Z",
+      "activity": [
+        {
+          "week": "2026-04-20",
+          "commits": 0
+        },
+        {
+          "week": "2026-04-27",
+          "commits": 0
+        },
+        {
+          "week": "2026-05-04",
+          "commits": 0
+        },
+        {
+          "week": "2026-05-11",
+          "commits": 0
+        },
+        {
+          "week": "2026-05-18",
+          "commits": 0
+        },
+        {
+          "week": "2026-05-25",
+          "commits": 0
+        },
+        {
+          "week": "2026-06-01",
+          "commits": 0
+        },
+        {
+          "week": "2026-06-08",
+          "commits": 0
+        },
+        {
+          "week": "2026-06-15",
+          "commits": 0
+        },
+        {
+          "week": "2026-06-22",
+          "commits": 0
+        },
+        {
+          "week": "2026-06-29",
+          "commits": 0
+        },
+        {
+          "week": "2026-07-06",
+          "commits": 82
+        },
+        {
+          "week": "2026-07-13",
+          "commits": 268
+        },
+        {
+          "week": "2026-07-20",
+          "commits": 129
+        },
+        {
+          "week": "2026-07-27",
+          "commits": 38
+        },
+        {
+          "week": "2026-08-03",
+          "commits": 10
+        },
+        {
+          "week": "2026-08-10",
+          "commits": 4
+        },
+        {
+          "week": "2026-08-17",
+          "commits": 0
+        },
+        {
+          "week": "2026-08-24",
+          "commits": 1
+        },
+        {
+          "week": "2026-08-31",
+          "commits": 0
+        },
+        {
+          "week": "2026-09-07",
+          "commits": 1
+        },
+        {
+          "week": "2026-09-14",
+          "commits": 0
+        },
+        {
+          "week": "2026-09-21",
+          "commits": 0
+        },
+        {
+          "week": "2026-09-28",
+          "commits": 107
+        },
+        {
+          "week": "2026-10-05",
+          "commits": 1418
+        },
+        {
+          "week": "2026-10-12",
+          "commits": 434
+        }
+      ],
+      "milestones": [
+        {
+          "date": "2026-04-14",
+          "subject": "Initial commit: betterBinaryMCP - Enhanced MCP server for Hopper Disassembler"
+        },
+        {
+          "date": "2026-07-12",
+          "subject": "Add Node.js project tooling and config"
+        },
+        {
+          "date": "2026-07-14",
+          "subject": "feat: add web and Electron reverse-engineering workflows"
+        },
+        {
+          "date": "2026-08-10",
+          "subject": "fix(release): let release PR updates trigger CI (#470)"
+        },
+        {
+          "date": "2026-08-29",
+          "subject": "docs: improve GitHub issue and pull request templates"
+        },
+        {
+          "date": "2026-09-29",
+          "subject": "docs: add REA tool design guidance (#485)"
+        },
+        {
+          "date": "2026-10-13",
+          "subject": "test(http3): add real MITM capture verification lab (#1997)"
+        }
+      ]
+    },
+    "formats": [
+      {
+        "ext": ".ts",
+        "count": 2550
+      },
+      {
+        "ext": ".mjs",
+        "count": 339
+      },
+      {
+        "ext": ".md",
+        "count": 148
+      },
+      {
+        "ext": ".txt",
+        "count": 72
+      },
+      {
+        "ext": ".py",
+        "count": 43
+      },
+      {
+        "ext": ".json",
+        "count": 30
+      },
+      {
+        "ext": ".mts",
+        "count": 27
+      },
+      {
+        "ext": ".c",
+        "count": 25
+      },
+      {
+        "ext": ".html",
+        "count": 22
+      },
+      {
+        "ext": ".java",
+        "count": 20
+      },
+      {
+        "ext": ".swift",
+        "count": 19
+      },
+      {
+        "ext": ".js",
+        "count": 18
+      }
+    ]
+  },
+  "post": {
+    "title": "REA: Reverse Engineer Anything",
+    "kind": "Tool",
+    "topic": "Developer Tools",
+    "status": "shipped",
+    "hook": "One MCP server to take apart binaries, Electron apps, APKs and websites.",
+    "summary": "REA is an MCP server and CLI that lets an agent inspect native binaries, JavaScript apps, Android APKs and more, returning findings with evidence. It has shipped many releases, with 2,493 commits from 202 authors.",
+    "writeup": "## What it is\nREA (Reverse Engineer Anything) is an MCP server and CLI for reverse engineering. An agent points it at a local target and gets back findings with the evidence and limitations behind each conclusion. Analysis runs locally.\n\n## Why it exists\nThe pitch: see a feature in an app you like, understand how it works down to the binary level, then have your agent build a version for your own project.\n\n## How it works\n`npx rea-agents setup` registers the MCP server with agents such as Claude Code, Codex, Cursor and Gemini CLI, and installs matching workflow instructions. The agent calls REA to inspect the target and trace code. It then uses the returned code, references and unknowns to explain, implement and test. The same workflows are available as terminal commands.\n\n## What it covers\nThe README table lists 14 target types: native binaries (via Hopper, Ghidra or IDA), ELF layout, Go binaries, WASM, EVM bytecode, SQLite databases, recorded Linux crashes, JavaScript and Electron, websites, saved network captures, .NET assemblies, Android APKs, Android devices and JEB projects.\n\n## Progress\nThe repo started on 2026-04-14 as a Hopper Disassembler MCP server. Most activity came later: 1418 commits in the week of 2026-10-05 alone. Release 6.4.0 (2026-10-11) added ADB device inspection, JEB project browsing, Ghidra import options and tRPC and GraphQL discovery. The website is plain HTML and CSS with translated editions, and the README exists in 19 languages.\n\n## Open questions\nNative analysis depends on a separately installed engine, and several targets need extra tools such as pwntools, WABT or JADX. How much of that setup can be automated is still open.",
+    "tags": [
+      "reverse-engineering",
+      "mcp",
+      "agents",
+      "typescript",
+      "binary-analysis",
+      "cli"
+    ],
+    "accent": "#5c4ee5",
+    "sources": [
+      {
+        "id": "s1",
+        "path": "README.md",
+        "note": "Pitch, setup, target table"
+      },
+      {
+        "id": "s4",
+        "path": "website/README.md",
+        "note": "Website approach"
+      },
+      {
+        "id": "s5",
+        "path": "CHANGELOG.md",
+        "note": "6.4.0 highlights"
+      },
+      {
+        "id": "git",
+        "path": ".git"
+      }
+    ],
+    "slides": [
+      {
+        "type": "cover",
+        "heading": "See a feature you like? Ask your agent to take the app apart.",
+        "body": "REA gives agents one MCP for binaries, Electron apps, APKs and websites.",
+        "image": "/research/media/rea/3.jpg"
+      },
+      {
+        "type": "table",
+        "heading": "What REA can analyze",
+        "columns": [
+          "Target",
+          "What REA returns"
+        ],
+        "rows": [
+          [
+            "Native binaries",
+            "Pseudocode, assembly, strings, symbols, calls and references"
+          ],
+          [
+            "Go binaries",
+            "Embedded compiler version, modules, replacements and build settings"
+          ],
+          [
+            "EVM bytecode",
+            "Dispatch selectors, byte offsets, inferred arguments and mutability"
+          ],
+          [
+            "JavaScript / Electron",
+            "Modules, imports, source maps, routes, IPC and native add-on relationships"
+          ],
+          [
+            "Android APKs",
+            "Manifest declarations, classes, decompiled methods and references"
+          ],
+          [
+            "JEB projects",
+            "Engine-backed project units, artifact digests and type/method pseudo-code"
+          ]
+        ],
+        "src": "s1"
+      },
+      {
+        "type": "image",
+        "image": "/research/media/rea/1.svg",
+        "fit": "contain"
+      },
+      {
+        "type": "code",
+        "heading": "Setup is one command",
+        "lang": "bash",
+        "code": "npx rea-agents setup",
+        "caption": "Registers the MCP server and workflow instructions with your agent, with backups of existing config.",
+        "src": "s1"
+      },
+      {
+        "type": "chart",
+        "chart": "bar",
+        "heading": "Commits per week during the surge",
+        "x": [
+          "2026-09-28",
+          "2026-10-05",
+          "2026-10-12"
+        ],
+        "series": [
+          {
+            "name": "Commits",
+            "values": [
+              107,
+              1418,
+              434
+            ]
+          }
+        ],
+        "unit": "commits",
+        "src": "git",
+        "takeaway": "The week of 2026-10-05 alone saw 1418 commits; the 2026-10-12 week was still in progress."
+      },
+      {
+        "type": "timeline",
+        "heading": "From a Hopper bridge to a full toolkit",
+        "events": [
+          {
+            "date": "2026-04-14",
+            "label": "Started as a Hopper MCP server"
+          },
+          {
+            "date": "2026-07-14",
+            "label": "Web and Electron workflows added"
+          },
+          {
+            "date": "2026-09-29",
+            "label": "REA tool design guidance written"
+          },
+          {
+            "date": "2026-10-13",
+            "label": "HTTP/3 MITM capture lab added"
+          }
+        ],
+        "src": "git"
+      },
+      {
+        "type": "bigNumbers",
+        "heading": "Scale of the project",
+        "items": [
+          {
+            "value": "2493",
+            "label": "Commits",
+            "src": "git"
+          },
+          {
+            "value": "202",
+            "label": "Authors",
+            "src": "git"
+          },
+          {
+            "value": "3400",
+            "label": "Files",
+            "src": "git"
+          }
+        ]
+      },
+      {
+        "type": "takeaway",
+        "heading": "Reverse engineering, as an agent tool call",
+        "body": "REA returns evidence with every conclusion, so the agent can explain a feature and then rebuild it."
+      }
+    ]
+  }
+}

@@ -1,0 +1,160 @@
+{
+  "slug": "nirvana",
+  "hash": "41f704098ccafada",
+  "name": "nirvana",
+  "path": "/Users/surshar/Programming/XO/ClaudeWorkspace/experiments/nirvana",
+  "origin": "folder",
+  "files": [
+    "SANDBOX-ONE-PAGER.md",
+    "create-sandbox.sh"
+  ],
+  "media": [],
+  "occurredAt": "2026-07-09T16:34:37.243Z",
+  "generatedAt": "2026-10-30T09:43:46.516Z",
+  "meta": {
+    "fileCount": 2,
+    "bytes": 6047,
+    "languages": [
+      {
+        "name": "Shell",
+        "share": 1
+      }
+    ],
+    "stack": [],
+    "formats": [
+      {
+        "ext": ".md",
+        "count": 1
+      },
+      {
+        "ext": ".sh",
+        "count": 1
+      }
+    ]
+  },
+  "post": {
+    "title": "Nirvana Agent Sandboxes",
+    "kind": "Tool",
+    "topic": "Infrastructure",
+    "status": "working",
+    "hook": "Pause an agent, delete its pod, keep its files. Resume from the last step.",
+    "summary": "A one-pager and a bash script for creating managed agent sandboxes on Nirvana's NKS cloud through an OpenSandbox REST API. Covers an 11-call lifecycle API with optional persistent storage.",
+    "writeup": "## What it is\nA reference kit for Nirvana's agent sandboxes: isolated, managed environments on NKS infra, built on AMD EPYC 9354P + DDR5 and OpenSandbox. The folder holds a one-page guide (`SANDBOX-ONE-PAGER.md`) and `create-sandbox.sh`, a script that creates a sandbox from the command line.\n\n## Why it exists\nAutonomous agents need somewhere safe to run code, and long jobs need to survive interruption. The kit documents how to get a sandbox quickly and how to park it without losing work.\n\n## How it works\nTwo endpoints split the traffic. The API endpoint is the control plane (create, pause, resume, delete, diagnostics) and every call carries an `OPEN-SANDBOX-API-KEY` header. The gateway endpoint is the data plane, used to reach a port inside a sandbox by sending an `OpenSandbox-Ingress-To` routing header. A proxy route through the API server is the simpler, slower alternative.\n\nSandboxes are ephemeral by default (memory only, fastest start). With `extensions.persistence` set, a PVC mounts at `/workspace`. On pause the pod is deleted but the PVC stays; on resume a new pod re-mounts it, so an agent can pick up from its last checkpoint.\n\nThe script defaults to a `python:3.12-slim` image, 1 CPU, 1Gi memory, serving port 8000, and switches to a 50Gi persistent sandbox with `--persistent`. Everything is overridable by environment variable.\n\n## Results\nThe one-pager lists 11 operations. Creation takes ~2.5s for ephemeral and ~6-7s for persistent sandboxes. Pause and delete are described as instant.\n\n## Open questions\nNo benchmarks beyond the quoted creation times, and no tests. The script also needs a real API key to try. Storage class choice (`local-path` for dev, `abs` for prod) is left to the user.",
+    "tags": [
+      "sandbox",
+      "nirvana",
+      "agents",
+      "rest-api",
+      "persistence",
+      "bash"
+    ],
+    "accent": "#7c5cff",
+    "sources": [
+      {
+        "id": "s1",
+        "path": "SANDBOX-ONE-PAGER.md",
+        "note": "API table, persistence model, lifecycle, create example"
+      },
+      {
+        "id": "s2",
+        "path": "create-sandbox.sh",
+        "note": "Defaults and persistent flag"
+      }
+    ],
+    "slides": [
+      {
+        "type": "cover",
+        "heading": "Pause an agent, delete its pod, keep every file.",
+        "body": "Managed agent sandboxes on Nirvana, with a checkpoint-friendly lifecycle."
+      },
+      {
+        "type": "bigNumbers",
+        "heading": "Fast to start, small to ask for",
+        "items": [
+          {
+            "value": "~2.5s",
+            "label": "Ephemeral sandbox create",
+            "src": "s1"
+          },
+          {
+            "value": "~6-7s",
+            "label": "Persistent sandbox create",
+            "src": "s1"
+          },
+          {
+            "value": "50Gi",
+            "label": "Default persistent storage",
+            "src": "s2"
+          }
+        ]
+      },
+      {
+        "type": "table",
+        "heading": "The lifecycle calls that matter",
+        "columns": [
+          "Function",
+          "Method + Path",
+          "Notes"
+        ],
+        "rows": [
+          [
+            "Create",
+            "POST /sandboxes",
+            "~2.5s ephemeral, ~6-7s persistent"
+          ],
+          [
+            "Pause",
+            "POST /sandboxes/{id}/pause",
+            "Instant. Pod deleted, PVC retained, files kept."
+          ],
+          [
+            "Resume",
+            "POST /sandboxes/{id}/resume",
+            "Restarts from checkpoint."
+          ],
+          [
+            "Delete",
+            "DELETE /sandboxes/{id}",
+            "Instant + permanent. No recovery."
+          ]
+        ],
+        "highlight": 1,
+        "src": "s1"
+      },
+      {
+        "type": "compare",
+        "heading": "Ephemeral or persistent",
+        "left": {
+          "title": "Ephemeral (default)",
+          "points": [
+            "Memory-only, gone on delete",
+            "Fastest startup",
+            "Stateless or temp work"
+          ]
+        },
+        "right": {
+          "title": "Persistent",
+          "points": [
+            "PVC mounted at /workspace",
+            "Survives pause and resume",
+            "Long-running, multi-step agents"
+          ]
+        },
+        "src": "s1"
+      },
+      {
+        "type": "code",
+        "heading": "A minimal create call",
+        "lang": "bash",
+        "code": "curl -X POST https://api.170.23.67.211.nip.io/sandboxes \\\n  -H \"Content-Type: application/json\" \\\n  -H \"OPEN-SANDBOX-API-KEY: YOUR_API_KEY\" \\\n  -d '{\n    \"image\": {\"uri\": \"python:3.12-slim\"},\n    \"entrypoint\": [\"/bin/sh\", \"-c\", \"python3 -m http.server 8000\"],\n    \"resourceLimits\": {\"cpu\": \"1\", \"memory\": \"1Gi\"}\n  }'",
+        "caption": "Ephemeral python sandbox serving port 8000.",
+        "src": "s1"
+      },
+      {
+        "type": "takeaway",
+        "heading": "State lives on the volume, not the pod",
+        "body": "Agents write checkpoints to /workspace, so pausing frees compute and resuming continues instead of restarting."
+      }
+    ]
+  }
+}

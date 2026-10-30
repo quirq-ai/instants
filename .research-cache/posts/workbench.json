@@ -1,0 +1,202 @@
+{
+  "slug": "workbench",
+  "hash": "22eba5178c7abfb0",
+  "name": "workbench",
+  "path": "/Users/surshar/Programming/XO/ClaudeWorkspace/experiments/workbench",
+  "origin": "folder",
+  "files": [
+    "README.md",
+    "package.json",
+    "electron.vite.config.ts",
+    "src/claude-app-server/index.ts",
+    "src/main/engines.ts",
+    "src/main/git.ts",
+    "src/main/index.ts",
+    "src/main/store.ts",
+    "src/preload/index.ts",
+    "src/shared/protocol.ts",
+    "src/shared/rpc.ts",
+    "src/shared/transcript.ts",
+    "src/shared/types.ts",
+    "src/renderer/src/App.tsx"
+  ],
+  "media": [],
+  "occurredAt": "2026-10-13T18:27:20.694Z",
+  "generatedAt": "2026-10-30T09:44:50.887Z",
+  "meta": {
+    "fileCount": 26,
+    "bytes": 312428,
+    "languages": [
+      {
+        "name": "TypeScript",
+        "share": 0.847
+      },
+      {
+        "name": "CSS",
+        "share": 0.149
+      },
+      {
+        "name": "HTML",
+        "share": 0.004
+      }
+    ],
+    "stack": [
+      "Node.js",
+      "Claude Agent SDK",
+      "React",
+      "Electron",
+      "TypeScript",
+      "Vite"
+    ],
+    "formats": [
+      {
+        "ext": ".ts",
+        "count": 13
+      },
+      {
+        "ext": ".tsx",
+        "count": 7
+      },
+      {
+        "ext": ".json",
+        "count": 3
+      },
+      {
+        "ext": ".md",
+        "count": 1
+      },
+      {
+        "ext": ".html",
+        "count": 1
+      },
+      {
+        "ext": ".css",
+        "count": 1
+      }
+    ]
+  },
+  "post": {
+    "title": "Workbench: Two Engines, One UI",
+    "kind": "Prototype",
+    "topic": "AI & Agents",
+    "status": "working",
+    "hook": "Claude Code, dressed up as a Codex server so one desktop app can drive both.",
+    "summary": "Workbench is an Electron desktop app with Codex and Claude as interchangeable engines behind one UI. A custom claude-app-server maps the Claude Agent SDK onto the Codex app-server JSON-RPC protocol.",
+    "writeup": "## What it is\nWorkbench is a Codex-style desktop app built with Electron, React and Vite. It has two interchangeable engines behind a single UI: the real `codex app-server`, and `claude-app-server`, a process written in this repo that puts Claude Code behind the same wire format.\n\n## Why\nRather than build two clients, the app speaks one protocol: the Codex app-server JSON-RPC (v2), newline-delimited over stdio. The Electron app then needs only one client, one transcript reducer and one set of components. Each thread is pinned to the engine it started on, and thread keys are `engine:threadId` because ids are only unique within one engine.\n\n## How it works\n`claude-app-server` implements the subset of the protocol Workbench uses and translates each call to the Claude Agent SDK. `thread/start` becomes a new UUID used as the `sessionId`, `thread/resume` becomes `resume: threadId`, and `turn/start` becomes one `query()` per turn with partial messages for deltas. `turn/interrupt` is an `AbortController.abort()`. Tool use maps to items: `Bash` becomes a `commandExecution`, `Edit`/`MultiEdit`/`Write` become `fileChange`, and approvals flow through the `canUseTool` callback.\n\nAccess presets (Read only, Ask, Agent, Full access) map to SDK permission modes: `plan`, `default`, `acceptEdits` and `bypassPermissions`. A shared reducer turns notifications into a transcript, which main persists as JSON and the renderer draws. A git panel shows working-tree diffs the same way for both engines.\n\n## Status\nThe pieces are all in place: engine spawning, persistence, approvals, diff panel and the standalone server, which can also run on its own with `node out/main/claude-app-server.js`. There are no benchmarks or tests in the material.\n\n## Open questions\nHow much of the Codex protocol surface Claude can honestly cover, and how the two engines compare on the same task, are not yet answered.",
+    "tags": [
+      "electron",
+      "claude-agent-sdk",
+      "codex",
+      "json-rpc",
+      "desktop-app",
+      "agents"
+    ],
+    "accent": "#d97757",
+    "sources": [
+      {
+        "id": "s1",
+        "path": "README.md",
+        "note": "engines, protocol mapping tables, layout"
+      },
+      {
+        "id": "s2",
+        "path": "package.json",
+        "note": "description and dependencies"
+      },
+      {
+        "id": "s3",
+        "path": "electron.vite.config.ts",
+        "note": "claude-app-server built as its own entry"
+      },
+      {
+        "id": "s5",
+        "path": "src/main/engines.ts",
+        "note": "how each app-server is spawned"
+      },
+      {
+        "id": "s13",
+        "path": "src/shared/types.ts",
+        "note": "engines, access presets, thread keys"
+      }
+    ],
+    "slides": [
+      {
+        "type": "cover",
+        "heading": "Claude Code, dressed up as a Codex server so one app can drive both.",
+        "body": "Workbench puts two agent engines behind a single desktop UI and a single wire protocol."
+      },
+      {
+        "type": "table",
+        "heading": "Claude Agent SDK, spoken as Codex",
+        "columns": [
+          "app-server",
+          "Claude Agent SDK"
+        ],
+        "rows": [
+          [
+            "thread/start",
+            "new UUID as sessionId"
+          ],
+          [
+            "thread/resume",
+            "resume: threadId"
+          ],
+          [
+            "turn/start",
+            "one query() per turn"
+          ],
+          [
+            "turn/interrupt",
+            "AbortController.abort()"
+          ],
+          [
+            "commandExecution item",
+            "Bash tool_use + tool_result"
+          ],
+          [
+            "item/*/requestApproval",
+            "canUseTool callback"
+          ]
+        ],
+        "src": "s1",
+        "highlight": 2
+      },
+      {
+        "type": "code",
+        "heading": "One entry spawns each engine",
+        "lang": "ts",
+        "code": "function spawnCommand(engine: EngineId) {\n  if (engine === 'codex') {\n    return { cmd: process.env.WORKBENCH_CODEX_BIN ?? 'codex', args: ['app-server'], env: process.env }\n  }\n  // claude-app-server ships inside this app and runs on Electron's bundled Node.\n  return {\n    cmd: process.execPath,\n    args: [join(import.meta.dirname, 'claude-app-server.js')],\n    env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' }\n  }\n}",
+        "caption": "Everything above spawnCommand is engine-agnostic.",
+        "src": "s5"
+      },
+      {
+        "type": "compare",
+        "heading": "Access presets become permission modes",
+        "left": {
+          "title": "Workbench preset",
+          "points": [
+            "Read only",
+            "Ask",
+            "Agent",
+            "Full access"
+          ]
+        },
+        "right": {
+          "title": "SDK permission mode",
+          "points": [
+            "plan",
+            "default",
+            "acceptEdits",
+            "bypassPermissions"
+          ]
+        },
+        "src": "s1"
+      },
+      {
+        "type": "takeaway",
+        "heading": "Speak one protocol, swap the engine",
+        "body": "A protocol adapter let one client, one reducer and one component set serve both Codex and Claude."
+      }
+    ]
+  }
+}

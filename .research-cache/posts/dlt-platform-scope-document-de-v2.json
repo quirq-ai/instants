@@ -1,0 +1,165 @@
+{
+  "slug": "dlt-platform-scope-document-de-v2",
+  "hash": "d8bba0bca6dfe15c",
+  "name": "DLT Platform — Scope Document_de_v2.pdf",
+  "path": "/Users/surshar/Programming/XO/ClaudeWorkspace/experiments/DLT Platform — Scope Document_de_v2.pdf",
+  "origin": "folder",
+  "files": [
+    "DLT Platform — Scope Document_de_v2.pdf"
+  ],
+  "media": [],
+  "occurredAt": "2026-10-25T11:51:43.000Z",
+  "generatedAt": "2026-10-30T09:42:28.794Z",
+  "meta": {
+    "fileCount": 1,
+    "bytes": 1793520,
+    "languages": [],
+    "stack": [],
+    "formats": [
+      {
+        "ext": ".pdf",
+        "count": 1
+      }
+    ]
+  },
+  "post": {
+    "title": "DLT Platform Scope",
+    "kind": "Study",
+    "topic": "Business & Strategy",
+    "status": "idea",
+    "hook": "Replace a telecom's regulated core, and hand back the keys, in 16 weeks",
+    "summary": "A draft build scope for a client-owned TRAI DLT platform that replaces an incumbent vendor's single-site setup with two active sites and a Fabric 2.5 ledger. It is a planning document with targets, assumptions and a 16 week cut-over plan, not a built system.",
+    "writeup": "## What it is\nA 41 page proposed scope from Resolute Advisory for its technology development partner. The Client is a licensed Indian telecom operator that runs its own TRAI DLT node, where senders register under TCCCPR and commercial SMS and voice are scrubbed.\n\n## Why it exists\nToday an incumbent vendor built the panel and scrubbing service, runs the Fabric layer and holds the Client's ledger keys. The setup has one endorsing peer, one application node and one site, on Fabric 1.4, which is two long-term-support releases behind 2.5. The scope argues that cannot reach 99.99% availability, and that TRAI has changed what the DLT must enforce five times since August 2024.\n\n## How the target works\nThe ledger stays off the live traffic path. Registry changes are written through Fabric chaincode, committed blocks stream through Kafka into an in-memory copy inside every scrubbing node, so each verdict is a local lookup. Every verdict streams to ClickHouse for complaints, the monthly PMR and TRAI reports. Each TCCCPR rule is versioned configuration with a logger mode, so new rules need no release.\n\n## Targets\n- Live in 16 weeks from kick-off, hypercare ends at week 20\n- 90,000 SMS TPS per site, p99 of 10 ms or less for SMS and 20 ms or less for voice\n- 99.99% availability, or 4.3 minutes a month at most\n- Traffic moves within 30 s if a site fails\n\n## Cut-over\nWeeks 12 to 14 are a shadow run through a passive network tap, then traffic moves across by connection in four waves. The existing third-party fallback stays in place throughout.\n\n## Open items\nThe plan hinges on five things by the end of week 2, including vendor handover of keys and exports and a named consortium contact. Assumptions are tagged [A#] and open Client decisions [D#]. Who owns the incumbent vendor's IP today is unconfirmed.",
+    "tags": [
+      "telecom",
+      "trai",
+      "dlt",
+      "hyperledger-fabric",
+      "scope",
+      "compliance"
+    ],
+    "accent": "#2f7de1",
+    "sources": [
+      {
+        "id": "s1",
+        "path": "DLT Platform — Scope Document_de_v2.pdf",
+        "note": "Executive summary, objectives, regulatory baseline, cut-over plan and numbers"
+      }
+    ],
+    "slides": [
+      {
+        "type": "cover",
+        "heading": "A vendor holds the ledger keys. The plan: take them back in 16 weeks.",
+        "body": "A draft scope for a client-owned telecom DLT platform under TRAI rules."
+      },
+      {
+        "type": "bigNumbers",
+        "heading": "The targets at cut-over",
+        "items": [
+          {
+            "value": "16 weeks",
+            "label": "Kick-off to live",
+            "src": "s1"
+          },
+          {
+            "value": "90,000",
+            "label": "SMS TPS per site",
+            "src": "s1"
+          },
+          {
+            "value": "10 ms or less",
+            "label": "p99 verdict, SMS",
+            "src": "s1"
+          },
+          {
+            "value": "99.99%",
+            "label": "Platform availability",
+            "src": "s1"
+          }
+        ]
+      },
+      {
+        "type": "table",
+        "heading": "From vendor-run to client-owned",
+        "columns": [
+          "Area",
+          "Today",
+          "At week 16"
+        ],
+        "rows": [
+          [
+            "Ownership",
+            "Vendor holds ledger keys",
+            "Client owns code, chaincode, keys"
+          ],
+          [
+            "Scrubbing",
+            "One application node",
+            "Two active sites"
+          ],
+          [
+            "Ledger",
+            "Fabric 1.4, one peer",
+            "Fabric 2.5 LTS, five peers"
+          ],
+          [
+            "Resilience",
+            "One site, tape backup",
+            "Two sites plus DR quorum site"
+          ]
+        ],
+        "src": "s1",
+        "highlight": 2
+      },
+      {
+        "type": "flow",
+        "heading": "How traffic moves across",
+        "steps": [
+          {
+            "label": "Week 2 prerequisites",
+            "detail": "Vendor hands over keys, exports and interface specs"
+          },
+          {
+            "label": "Weeks 12 to 14: shadow run",
+            "detail": "Passive tap copies live SMSC traffic, verdicts compared"
+          },
+          {
+            "label": "Weeks 14 to 16: four waves",
+            "detail": "Traffic moves by connection, fallback stays in place"
+          },
+          {
+            "label": "Weeks 17 to 20: hypercare",
+            "detail": "Stabilise after full cut-over"
+          }
+        ],
+        "src": "s1"
+      },
+      {
+        "type": "compare",
+        "heading": "Why the SMSC wait matters",
+        "left": {
+          "title": "Today",
+          "points": [
+            "SMSC waits up to 120 s",
+            "One application node",
+            "One site, backed up to tape"
+          ]
+        },
+        "right": {
+          "title": "At cut-over",
+          "points": [
+            "SMSC waits 500 ms, then retries",
+            "Other site, then third-party fallback",
+            "Traffic moves within 30 s"
+          ]
+        },
+        "src": "s1"
+      },
+      {
+        "type": "takeaway",
+        "heading": "Ownership and rule changes drive the design",
+        "body": "Versioned rules with a logger mode and a client-held ledger turn each new TRAI direction into configuration, not a vendor release."
+      }
+    ]
+  }
+}

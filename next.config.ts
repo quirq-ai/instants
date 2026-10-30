@@ -4,17 +4,14 @@ import { fileURLToPath } from "node:url";
 const projectRoot = fileURLToPath(new URL(".", import.meta.url));
 
 const nextConfig: NextConfig = {
-  // Keep nested local checkouts and Vercel builds scoped to this repository.
+  // Keep the dev badge clear of the mobile bottom tab bar.
+  devIndicators: { position: "top-right" },
+  // Keep nested local checkouts scoped to this repository.
   turbopack: { root: projectRoot },
   outputFileTracingRoot: projectRoot,
-  // A local build must never package someone's private activity journals.
+  // A build must never package the generated research cache or uploads.
   outputFileTracingExcludes: {
-    "/*": [
-      "./session/**/*",
-      "./.instants/**/*",
-      "./**/timeline.jsonl",
-      "./**/activity.jsonl",
-    ],
+    "/*": ["./.research-cache/**/*"],
   },
 };
 

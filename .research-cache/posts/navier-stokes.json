@@ -1,0 +1,232 @@
+{
+  "slug": "navier-stokes",
+  "hash": "6ec9561fbc34c1ec",
+  "name": "navier-stokes",
+  "path": "/Users/surshar/Programming/XO/ClaudeWorkspace/experiments/navier-stokes",
+  "origin": "folder",
+  "files": [
+    "README.md",
+    "package.json",
+    "standalone/flow-lab.html",
+    "next-env.d.ts",
+    "next.config.ts",
+    "vite.config.ts",
+    "app/globals.css",
+    "app/layout.tsx",
+    "app/page.tsx",
+    "app/research.css",
+    "components/breakthrough-page.tsx",
+    "hooks/use-mobile.ts",
+    "lib/fluid.ts",
+    "lib/render-fluid.ts",
+    "lib/research.ts"
+  ],
+  "media": [],
+  "occurredAt": "2026-09-10T13:03:52.000Z",
+  "generatedAt": "2026-10-30T09:43:32.408Z",
+  "meta": {
+    "fileCount": 84,
+    "bytes": 1246911,
+    "languages": [
+      {
+        "name": "HTML",
+        "share": 0.622
+      },
+      {
+        "name": "TypeScript",
+        "share": 0.331
+      },
+      {
+        "name": "CSS",
+        "share": 0.041
+      },
+      {
+        "name": "JavaScript",
+        "share": 0.005
+      }
+    ],
+    "stack": [
+      "Node.js",
+      "React",
+      "Recharts",
+      "Tailwind CSS",
+      "TypeScript",
+      "Vite",
+      "Cloudflare Workers"
+    ],
+    "git": {
+      "commits": 3,
+      "authors": 1,
+      "first": "2026-09-10T12:09:37.000Z",
+      "last": "2026-09-10T13:03:52.000Z",
+      "activity": [
+        {
+          "week": "2026-09-07",
+          "commits": 3
+        }
+      ],
+      "milestones": [
+        {
+          "date": "2026-09-10",
+          "subject": "Build interactive Navier-Stokes fluid lab"
+        },
+        {
+          "date": "2026-09-10",
+          "subject": "Add standalone browser version and numerical checks"
+        },
+        {
+          "date": "2026-09-10",
+          "subject": "Add sourced GPT breakthrough page with interactive scaling explorer"
+        }
+      ]
+    },
+    "formats": [
+      {
+        "ext": ".tsx",
+        "count": 64
+      },
+      {
+        "ext": ".ts",
+        "count": 8
+      },
+      {
+        "ext": ".json",
+        "count": 4
+      },
+      {
+        "ext": ".mjs",
+        "count": 3
+      },
+      {
+        "ext": ".css",
+        "count": 2
+      },
+      {
+        "ext": ".md",
+        "count": 1
+      },
+      {
+        "ext": ".svg",
+        "count": 1
+      },
+      {
+        "ext": ".html",
+        "count": 1
+      }
+    ]
+  },
+  "post": {
+    "title": "Flow Lab: Navier-Stokes",
+    "kind": "Simulation",
+    "topic": "Simulation & Science",
+    "status": "working",
+    "hook": "A fluid solver that runs offline in one HTML file, with a dated note on a claimed proof.",
+    "summary": "An interactive 2D incompressible fluid lab with four scenes, live field views and guided experiments, exported as a single offline HTML file. It also carries a sourced explainer page on the September 2026 Navier-Stokes announcement.",
+    "writeup": "## What it is\nFlow Lab is an educational fluid mechanics lab. You can stir, inject dye, draw obstacles, place a probe, and switch between dye, velocity, pressure and vorticity views. It ships as a React app and as `standalone/flow-lab.html`, which runs without a server or internet connection.\n\n## Why\nIt was built to make the Navier-Stokes terms tangible: local acceleration, pressure, viscosity. Four guided experiments cover flow around a cylinder, through an opening, a vortex pair, and free exploration. A second page explains the September 8, 2026 GPT breakthrough announcement, with sources and a verification status dated September 10, 2026.\n\n## How it works\nThe solver in `lib/fluid.ts` is a 2D, constant-density incompressible Newtonian model in dimensionless units. It uses a staggered MAC grid, semi-Lagrangian momentum transport, explicit viscous diffusion with an adaptive timestep, and iterative pressure projection. The default is 45 projection iterations, with viscosity .00035 and inflow .6. Rendering is on canvas, and the project is built with Vinext, Tailwind and Recharts.\n\n## Results\nThe README lists numerical checks: pressure correction, viscosity-dependent kinetic-energy decay, finite solutions in all four scenes at high viscosity and inlet settings, reset behavior, and obstacle editing. Research checks cover online and offline navigation and the displayed scaling laws. TypeScript checks and the production build pass. Git shows 3 commits on 2026-09-10.\n\n## Limits and open questions\nThe README is explicit that this is a qualitative learning model. It is not validated engineering CFD, not a no-slip cylinder benchmark, and not 3D turbulence. The scaling diagram illustrates published asymptotic laws and does not verify the proof. An open question is whether a no-slip boundary and a validated benchmark case could be added.",
+    "tags": [
+      "navier-stokes",
+      "fluid-simulation",
+      "cfd",
+      "react",
+      "offline",
+      "education"
+    ],
+    "accent": "#246cb4",
+    "sources": [
+      {
+        "id": "s1",
+        "path": "README.md",
+        "note": "Features, model, limitations, validation"
+      },
+      {
+        "id": "s2",
+        "path": "package.json",
+        "note": "Test script and stack"
+      },
+      {
+        "id": "s13",
+        "path": "lib/fluid.ts",
+        "note": "Solver defaults and MAC grid code"
+      },
+      {
+        "id": "s15",
+        "path": "lib/research.ts",
+        "note": "Core scales function"
+      },
+      {
+        "id": "git",
+        "path": ".git"
+      }
+    ],
+    "slides": [
+      {
+        "type": "cover",
+        "heading": "Open one HTML file and stir a Navier-Stokes fluid offline",
+        "body": "A 2D incompressible solver with four scenes, live pressure and vorticity views, and no server."
+      },
+      {
+        "type": "code",
+        "heading": "The solver's defaults",
+        "lang": "typescript",
+        "code": "export type Scene = 'cylinder' | 'nozzle' | 'vortices' | 'sandbox';\nexport type Field = 'dye' | 'speed' | 'pressure' | 'vorticity';\nexport const defaults: Parameters = { viscosity: .00035, inflow: .6, force: 1, advection: true, projection: true, diffusion: true, dye: true, iterations: 45 };\n\n// MAC grid: u and v on cell faces; p and tracer concentration at cell centers.\n// Coordinates and all displayed physical values are nondimensional.",
+        "src": "s13",
+        "caption": "Four scenes, four field views, and toggles that let you break the physics on purpose."
+      },
+      {
+        "type": "compare",
+        "heading": "What it is, and what it is not",
+        "src": "s1",
+        "left": {
+          "title": "The model",
+          "points": [
+            "2D, constant-density, incompressible",
+            "Staggered MAC grid",
+            "Semi-Lagrangian momentum transport",
+            "Iterative pressure projection"
+          ]
+        },
+        "right": {
+          "title": "Not claimed",
+          "points": [
+            "Validated engineering CFD",
+            "A no-slip cylinder benchmark",
+            "3D turbulence",
+            "A verification of the proof"
+          ]
+        }
+      },
+      {
+        "type": "code",
+        "heading": "A scaling law, labeled as illustration",
+        "lang": "typescript",
+        "code": "/** Normalized asymptotic core scales from OpenAI's paper §2.1; not a PDE solution. */\nexport function coreScales(progress:number){\n const h=.005,tau=10**(-progress);\n return {tau,radius:tau**.5,speed:tau**(-.5-h),energy:tau**(.5-3*h)};\n}",
+        "src": "s15",
+        "caption": "The breakthrough page plots published laws and says plainly that it does not reproduce the proof."
+      },
+      {
+        "type": "timeline",
+        "heading": "Built in one day",
+        "src": "git",
+        "events": [
+          {
+            "date": "2026-09-10",
+            "label": "Interactive fluid lab built"
+          },
+          {
+            "date": "2026-09-10",
+            "label": "Standalone HTML and numerical checks"
+          },
+          {
+            "date": "2026-09-10",
+            "label": "Sourced breakthrough page and scaling explorer"
+          }
+        ]
+      },
+      {
+        "type": "takeaway",
+        "heading": "A small solver, honest about its limits",
+        "body": "Offline, inspectable, and clear that it teaches the equations without claiming to be validated CFD."
+      }
+    ]
+  }
+}

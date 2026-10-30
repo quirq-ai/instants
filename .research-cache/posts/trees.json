@@ -1,0 +1,134 @@
+{
+  "slug": "trees",
+  "hash": "156df90d481341e6",
+  "name": "trees",
+  "path": "/Users/surshar/Programming/XO/ClaudeWorkspace/experiments/trees",
+  "origin": "folder",
+  "files": [
+    "index.html"
+  ],
+  "media": [],
+  "occurredAt": "2026-07-11T18:58:59.032Z",
+  "generatedAt": "2026-10-30T09:44:31.031Z",
+  "meta": {
+    "fileCount": 1,
+    "bytes": 76154,
+    "languages": [
+      {
+        "name": "HTML",
+        "share": 1
+      }
+    ],
+    "stack": [],
+    "formats": [
+      {
+        "ext": ".html",
+        "count": 1
+      }
+    ]
+  },
+  "post": {
+    "title": "How a Tree Eats Air",
+    "kind": "Simulation",
+    "topic": "Simulation & Science",
+    "status": "working",
+    "hook": "Nearly all of a tree's weight came from thin air, not the soil.",
+    "summary": "A single-page interactive simulation of tree photosynthesis, carbon allocation and growth, with a live iteration trace of every equation. It lets you run a tree from seed through 1000 years.",
+    "writeup": "## What it is\nA single HTML page, \"How a Tree Eats Air\", that simulates a tree's carbon and oxygen budget. You pick a tree type (deciduous, evergreen, redwood), set sunlight, CO₂, soil water and climate, then watch a seedling turn gas into structure.\n\n## Why\nTo make a counter-intuitive fact visible: a tree's mass mostly comes from air. The page states that 95% of the tree's dry mass was pulled out of thin air and water, not the soil.\n\n## How it works\nPhotosynthesis uses a non-rectangular hyperbola light response, scaled by a CO₂ Michaelis term and a RuBisCO temperature bell peaking at 27°C. Respiration is maintenance plus growth respiration (~28% of what's built). Net production is split across leaves 25%, stem 30%, branches 20% and roots 25%, with the leaf share tapering as the canopy fills, which gives an S-shaped growth curve. Stoichiometry is exact: 1 O₂ released per CO₂ fixed.\n\nThe UI has three parts: the leaf as a photosynthesis engine, the tree as a carbon ledger, and growth over time with seasons. A \"Math mode\" iteration trace steps one 0.02-day sub-step (~29 min) at a time and shows every equation live. You can fast forward +1, +10, +100 or +1000 years.\n\n## Findings\nDefaults start at Sunlight 100%, CO₂ 420 ppm and Soil water 75%. The page also retells Van Helmont's 1640s willow: it gained ~74 kg while the soil lost only ~57 g.\n\n## Open questions\nThe constants are tuned for legibility over a browsable timescale, not for a specific species, so outputs are order-of-magnitude. Calibrating against real species data would be the next step.",
+    "tags": [
+      "photosynthesis",
+      "simulation",
+      "carbon",
+      "plants",
+      "interactive",
+      "html"
+    ],
+    "accent": "#4caf50",
+    "sources": [
+      {
+        "id": "s1",
+        "path": "index.html",
+        "note": "Model assumptions, allocation split, UI controls, Van Helmont facts"
+      }
+    ],
+    "slides": [
+      {
+        "type": "cover",
+        "heading": "Where does a tree's weight actually come from?",
+        "body": "An interactive simulation that grows a tree from seed and tracks every gram of carbon."
+      },
+      {
+        "type": "bigNumbers",
+        "heading": "The counter-intuitive part",
+        "items": [
+          {
+            "value": "95%",
+            "label": "of dry mass from air and water",
+            "src": "s1"
+          },
+          {
+            "value": "~74 kg",
+            "label": "Van Helmont's willow gain",
+            "src": "s1"
+          },
+          {
+            "value": "~57 g",
+            "label": "soil mass lost",
+            "src": "s1"
+          }
+        ]
+      },
+      {
+        "type": "chart",
+        "chart": "donut",
+        "heading": "Where net carbon goes",
+        "x": [
+          "Leaves",
+          "Stem",
+          "Branches",
+          "Roots"
+        ],
+        "series": [
+          {
+            "name": "NPP allocation",
+            "values": [
+              25,
+              30,
+              20,
+              25
+            ]
+          }
+        ],
+        "unit": "%",
+        "src": "s1",
+        "takeaway": "Leaf share tapers as the canopy fills, giving an S-shaped growth curve."
+      },
+      {
+        "type": "compare",
+        "heading": "Two views of the same tree",
+        "left": {
+          "title": "The Leaf",
+          "points": [
+            "Light reactions split water, release O₂",
+            "Calvin cycle fixes CO₂ into glucose",
+            "Live CO₂ in, O₂ out, sugar per second"
+          ]
+        },
+        "right": {
+          "title": "The Tree",
+          "points": [
+            "Carbon becomes leaves, stem, branches, roots",
+            "Tracks GPP, respiration and NPP",
+            "Cumulative CO₂, O₂ and water exchange"
+          ]
+        },
+        "src": "s1"
+      },
+      {
+        "type": "takeaway",
+        "heading": "Trees are mostly built from air",
+        "body": "The model is illustrative, tuned for legibility, but it shows why wood is carbon that once floated as CO₂."
+      }
+    ]
+  }
+}

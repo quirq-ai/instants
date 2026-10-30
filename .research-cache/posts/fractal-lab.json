@@ -1,0 +1,173 @@
+{
+  "slug": "fractal-lab",
+  "hash": "63ff02e86013a93a",
+  "name": "fractal-lab",
+  "path": "/Users/surshar/Programming/XO/ClaudeWorkspace/experiments/fractal-lab",
+  "origin": "folder",
+  "files": [
+    "package.json",
+    "eslint.config.mjs",
+    "next-env.d.ts",
+    "next.config.ts",
+    "app/globals.css",
+    "app/layout.tsx",
+    "app/page.tsx",
+    "components/CommitGrowth.tsx",
+    "components/FractalPlayground.tsx",
+    "lib/commits.ts",
+    "lib/engine.ts",
+    "app/journey/page.tsx",
+    "app/api/commits/route.ts"
+  ],
+  "media": [],
+  "occurredAt": "2026-06-24T23:48:14.545Z",
+  "generatedAt": "2026-10-30T09:42:47.217Z",
+  "meta": {
+    "fileCount": 15,
+    "bytes": 313075,
+    "languages": [
+      {
+        "name": "TypeScript",
+        "share": 0.841
+      },
+      {
+        "name": "CSS",
+        "share": 0.156
+      },
+      {
+        "name": "JavaScript",
+        "share": 0.003
+      }
+    ],
+    "stack": [
+      "Node.js",
+      "Next.js",
+      "React",
+      "TypeScript"
+    ],
+    "formats": [
+      {
+        "ext": ".ts",
+        "count": 5
+      },
+      {
+        "ext": ".tsx",
+        "count": 5
+      },
+      {
+        "ext": ".json",
+        "count": 3
+      },
+      {
+        "ext": ".css",
+        "count": 1
+      },
+      {
+        "ext": ".mjs",
+        "count": 1
+      }
+    ]
+  },
+  "post": {
+    "title": "Fractal Lab",
+    "kind": "Prototype",
+    "topic": "Graphics & Visualization",
+    "status": "working",
+    "hook": "A git log becomes a tree: every commit hash decides how one branch grows.",
+    "summary": "A Next.js canvas playground for fractals (Mandelbrot, Julia, Burning Ship, Sierpinski, fern, tree) plus a Commit Journey page that grows a fractal tree from a repo's real git history.",
+    "writeup": "## What it is\nFractal Lab is a Next.js 16 and React 19 app with two pages. The home page is an interactive canvas playground with six fractal modes: mandelbrot, julia, burningShip, sierpinski, fern and tree. It has four palettes (Aurora, Ember, Prism, Noir), iteration and node budget controls, mirror symmetry and quadrant visibility toggles.\n\nThe second page, `/journey`, is a Commit Journey: it grows a fractal tree from a repository's real commit history.\n\n## Why\nThe playground is a place to explore fractal math. The journey page turns project history into a visual artifact, so a repo's growth can be seen rather than read.\n\n## How it works\nA route handler at `/api/commits` runs `git log --no-merges --reverse --shortstat` on a requested repo path and parses author, date, subject, additions, deletions and files per commit. The limit defaults to 200 and is clamped to 1000.\n\nEach commit hash is mapped to growth traits by a pure function: branch angle, left and right length ratios, lean, twist and a base hue. The same commit always grows the same way. Branch angle spans 14 to 48 degrees. The journey can be colored by journey, author or palette, and it plays back as an animation with sample data as a fallback.\n\nShared primitives (palettes, clamp, seeded hash-noise, an HSL to RGB conversion for fast canvas writes, escape-time coloring) were extracted into `lib/engine.ts` so both pages render with the same core.\n\n## Findings\nThe deterministic hash-to-trait design works well: no stored state is needed, and identical history yields an identical tree. The folder is not a git repo, so there is no development timeline to report.\n\n## Open questions\nLarge histories are capped by a segment budget of 60000, so very long repos will need sampling. Author-based coloring could also be extended to file-level signals.",
+    "tags": [
+      "fractals",
+      "canvas",
+      "nextjs",
+      "git",
+      "generative-art",
+      "visualization"
+    ],
+    "accent": "#12a889",
+    "sources": [
+      {
+        "id": "s1",
+        "path": "package.json",
+        "note": "stack and versions"
+      },
+      {
+        "id": "s8",
+        "path": "components/CommitGrowth.tsx",
+        "note": "color modes, palettes, segment budget"
+      },
+      {
+        "id": "s9",
+        "path": "components/FractalPlayground.tsx",
+        "note": "fractal modes and settings"
+      },
+      {
+        "id": "s10",
+        "path": "lib/commits.ts",
+        "note": "hash to traits mapping"
+      },
+      {
+        "id": "s11",
+        "path": "lib/engine.ts",
+        "note": "shared engine primitives"
+      },
+      {
+        "id": "s12",
+        "path": "app/journey/page.tsx",
+        "note": "journey page description"
+      },
+      {
+        "id": "s13",
+        "path": "app/api/commits/route.ts",
+        "note": "git log API"
+      }
+    ],
+    "slides": [
+      {
+        "type": "cover",
+        "heading": "A git log becomes a tree: every commit hash decides how one branch grows.",
+        "body": "Fractal Lab pairs a six-mode fractal playground with a commit-history tree grower."
+      },
+      {
+        "type": "code",
+        "heading": "Hash in, branch traits out",
+        "lang": "typescript",
+        "code": "export type CommitTraits = {\n  angle: number; // half-spread between the two child branches, radians\n  lengthL: number; // left child length ratio\n  lengthR: number; // right child length ratio\n  lean: number; // asymmetry bias applied to both children, radians\n  twist: number; // small counter-rotation, radians\n  hue: number; // 0..360, a base hue fingerprint for the commit\n};",
+        "caption": "Every value is a pure function of the commit hash, so a commit always grows the same way.",
+        "src": "s10"
+      },
+      {
+        "type": "table",
+        "heading": "Two pages, one engine",
+        "columns": [
+          "Page",
+          "Role"
+        ],
+        "rows": [
+          [
+            "/",
+            "Playground with 6 fractal modes"
+          ],
+          [
+            "/journey",
+            "Tree grown from git history"
+          ],
+          [
+            "/api/commits",
+            "Runs git log, returns commits"
+          ],
+          [
+            "lib/engine.ts",
+            "Shared palettes, noise, color"
+          ]
+        ],
+        "src": "s9"
+      },
+      {
+        "type": "takeaway",
+        "heading": "Deterministic hashes make history visible",
+        "body": "Same commits always give the same tree, so a repo's growth becomes a repeatable picture."
+      }
+    ]
+  }
+}

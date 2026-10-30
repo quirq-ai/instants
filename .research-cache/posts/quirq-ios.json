@@ -1,0 +1,177 @@
+{
+  "slug": "quirq-ios",
+  "hash": "8de81f85396b9f09",
+  "name": "quirq-ios",
+  "path": "/Users/surshar/Programming/XO/ClaudeWorkspace/experiments/quirq-ios",
+  "origin": "folder",
+  "files": [
+    "README.md",
+    "Quirq/Assets.xcassets/Contents.json",
+    "quirq-ios/quirq-ios/Assets.xcassets/Contents.json",
+    "Quirq/Assets.xcassets/AccentColor.colorset/Contents.json",
+    "Quirq/Assets.xcassets/AppIcon.appiconset/Contents.json",
+    "quirq-ios/quirq-ios/Assets.xcassets/AccentColor.colorset/Contents.json",
+    "quirq-ios/quirq-ios/Assets.xcassets/AppIcon.appiconset/Contents.json",
+    "Quirq/ContentView.swift",
+    "Quirq/QuirqApp.swift",
+    "Quirq/QuirqMark.swift",
+    "quirq-ios/quirq-ios/ContentView.swift",
+    "quirq-ios/quirq-ios/quirq_iosApp.swift",
+    "quirq-ios/quirq-iosTests/quirq_iosTests.swift",
+    "quirq-ios/quirq-iosUITests/quirq_iosUITests.swift",
+    "quirq-ios/quirq-iosUITests/quirq_iosUITestsLaunchTests.swift"
+  ],
+  "media": [],
+  "occurredAt": "2026-10-21T10:43:49.490Z",
+  "generatedAt": "2026-10-30T09:43:49.298Z",
+  "meta": {
+    "fileCount": 22,
+    "bytes": 92557,
+    "languages": [
+      {
+        "name": "Swift",
+        "share": 1
+      }
+    ],
+    "stack": [
+      "Xcode"
+    ],
+    "formats": [
+      {
+        "ext": ".swift",
+        "count": 8
+      },
+      {
+        "ext": ".json",
+        "count": 6
+      },
+      {
+        "ext": ".pbxproj",
+        "count": 2
+      },
+      {
+        "ext": ".png",
+        "count": 1
+      },
+      {
+        "ext": ".xcscheme",
+        "count": 1
+      },
+      {
+        "ext": ".md",
+        "count": 1
+      },
+      {
+        "ext": ".xcworkspacedata",
+        "count": 1
+      },
+      {
+        "ext": ".xcuserstate",
+        "count": 1
+      },
+      {
+        "ext": ".plist",
+        "count": 1
+      }
+    ]
+  },
+  "post": {
+    "title": "Quirq iOS Device Loop",
+    "kind": "Prototype",
+    "topic": "Developer Tools",
+    "status": "prototype",
+    "hook": "A one-page iPhone app, built so every install can be traced to the change behind it.",
+    "summary": "A minimal SwiftUI app showing the quirq mark, name and tagline, plus a build stamp, used to test a build-and-install loop driven by Claude. It is blocked until Xcode supports the iPhone 17 Pro.",
+    "writeup": "## What it is\nquirq-ios is a one-page SwiftUI app: the quirq \"q\" mark, the name, the line \"watch the work, not the meter\", and a faint build stamp at the bottom. Colors and the mark come from the quirq site and its favicon.\n\n## Why\nThe app itself is deliberately tiny. The real experiment is the device loop: Claude builds a signed copy with a bumped build number, installs it on a physical iPhone, and the stamp (`v0.1 (build) · date`) lets each install be matched to the change that produced it. Then you tell Claude what to change and repeat.\n\n## How it works\nThe mark is drawn in code as a SwiftUI Shape: a ring, a stem and a rounded foot, combined with path union and subtraction inside a 100 x 132 design box. The build stamp reads the version and build number from the bundle info. Builds run through `xcodebuild` targeting the phone itself (so a free team can register it), then `xcrun devicectl device install app` pushes the result.\n\nSetup is a one-time chore: add an Apple Account in Xcode, trust the cable connection, and enable Developer Mode on the phone. A free account's installs expire after 7 days.\n\n## Findings\nThe loop hit a hard blocker, confirmed on 21 October 2026: Xcode 16.4 cannot use an iPhone 17 Pro. Its device support image covers chips up to the A18 Pro (`0x8140`), while the phone's A19 Pro is `0x8150`, so Xcode cannot mount the image, register the phone or build for it.\n\n## Open questions\nThe fix is a newer Xcode, either via macOS 27.0.1 and Xcode 27, or macOS Sequoia 15.8.1 and Xcode 26.3. Until then the loop is untested end to end. The folder also holds a second, default Xcode template project with only placeholder tests.",
+    "tags": [
+      "swiftui",
+      "ios",
+      "xcode",
+      "devicectl",
+      "build-stamp",
+      "claude-code"
+    ],
+    "accent": "#a3a39e",
+    "sources": [
+      {
+        "id": "s1",
+        "path": "README.md",
+        "note": "device loop, commands, known blocker"
+      },
+      {
+        "id": "s8",
+        "path": "Quirq/ContentView.swift",
+        "note": "screen, brand colors, build stamp"
+      },
+      {
+        "id": "s10",
+        "path": "Quirq/QuirqMark.swift",
+        "note": "mark drawn as a Shape"
+      }
+    ],
+    "slides": [
+      {
+        "type": "cover",
+        "heading": "The app was trivial. Getting it onto a phone was the experiment.",
+        "body": "A one-page SwiftUI app with a build stamp, made to test a Claude-driven install loop."
+      },
+      {
+        "type": "code",
+        "heading": "The q is drawn, not imported",
+        "lang": "swift",
+        "code": "let bowl = CGPath(ellipseIn: CGRect(x: 0, y: 0, width: 100, height: 100), transform: nil)\nlet stem = CGPath(rect: CGRect(x: 72, y: 50, width: 28, height: 68), transform: nil)\nlet foot = CGPath(ellipseIn: CGRect(x: 72, y: 104, width: 28, height: 28), transform: nil)\nlet hole = CGPath(ellipseIn: CGRect(x: 33, y: 33, width: 34, height: 34), transform: nil)\nlet glyph = bowl.union(stem).union(foot).subtracting(hole)",
+        "caption": "A ring, a stem and a rounded foot, combined with path operations.",
+        "src": "s10"
+      },
+      {
+        "type": "flow",
+        "heading": "One round of the device loop",
+        "steps": [
+          {
+            "label": "Build",
+            "detail": "xcodebuild targets the phone, bumps the build number"
+          },
+          {
+            "label": "Install",
+            "detail": "xcrun devicectl pushes the app to the device"
+          },
+          {
+            "label": "Check the stamp",
+            "detail": "Match the install to its change"
+          },
+          {
+            "label": "Request changes",
+            "detail": "Tell Claude what to adjust"
+          }
+        ],
+        "src": "s1"
+      },
+      {
+        "type": "bigNumbers",
+        "heading": "Why the loop stalled",
+        "items": [
+          {
+            "value": "0x8140",
+            "label": "Newest chip Xcode 16.4 supports (A18 Pro)",
+            "src": "s1"
+          },
+          {
+            "value": "0x8150",
+            "label": "iPhone 17 Pro chip (A19 Pro)",
+            "src": "s1"
+          },
+          {
+            "value": "7 days",
+            "label": "Free account install lifetime",
+            "src": "s1"
+          }
+        ]
+      },
+      {
+        "type": "takeaway",
+        "heading": "Check toolchain support before the loop",
+        "body": "A brand new phone can outrun Xcode. The fix is a newer Xcode, so the loop awaits macOS and Xcode updates."
+      }
+    ]
+  }
+}

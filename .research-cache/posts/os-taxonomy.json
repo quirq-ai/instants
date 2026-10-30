@@ -1,0 +1,340 @@
+{
+  "slug": "os-taxonomy",
+  "hash": "be2fadd7dd5e1da8",
+  "name": "os-taxonomy",
+  "path": "/Users/surshar/Programming/XO/ClaudeWorkspace/experiments/os-taxonomy",
+  "origin": "folder",
+  "files": [
+    "README.md",
+    "CHANGELOG.md",
+    "PROVENANCE.md",
+    "package.json",
+    "data/clusters.json",
+    "data/curriculum-standards.json",
+    "data/dependencies.json",
+    "data/manifest.json",
+    "data/topics.json",
+    "schema/clusters.schema.json",
+    "schema/curriculum-standards.schema.json",
+    "schema/dependencies.schema.json",
+    "schema/topics.schema.json",
+    "CITATION.cff",
+    "vite.config.ts",
+    "scripts/validate-technology.mjs",
+    "scripts/validate.mjs",
+    "src/App.tsx",
+    "src/main.tsx",
+    "src/styles.css",
+    "src/types.ts",
+    "src/components/DetailPanel.tsx"
+  ],
+  "media": [],
+  "occurredAt": "2026-07-08T14:18:16.000Z",
+  "generatedAt": "2026-10-30T09:39:41.402Z",
+  "meta": {
+    "fileCount": 46,
+    "bytes": 9617816,
+    "languages": [
+      {
+        "name": "TypeScript",
+        "share": 0.835
+      },
+      {
+        "name": "CSS",
+        "share": 0.135
+      },
+      {
+        "name": "JavaScript",
+        "share": 0.029
+      },
+      {
+        "name": "HTML",
+        "share": 0.001
+      }
+    ],
+    "stack": [
+      "Node.js",
+      "React",
+      "TypeScript",
+      "Vite"
+    ],
+    "git": {
+      "commits": 6,
+      "authors": 2,
+      "first": "2026-07-08T09:32:56.000Z",
+      "last": "2026-07-08T14:18:16.000Z",
+      "activity": [
+        {
+          "week": "2026-07-06",
+          "commits": 6
+        }
+      ],
+      "milestones": [
+        {
+          "date": "2026-07-08",
+          "subject": "Initial release: Marble Skill Taxonomy v1"
+        },
+        {
+          "date": "2026-07-08",
+          "subject": "docs: drop references to unreleased teaching-research/viz layers"
+        },
+        {
+          "date": "2026-07-08",
+          "subject": "docs: add visualization video + live explorer link to README"
+        },
+        {
+          "date": "2026-07-08",
+          "subject": "docs: render the preview inline (GIF), committed mp4s don't get a README player"
+        }
+      ]
+    },
+    "formats": [
+      {
+        "ext": ".json",
+        "count": 14
+      },
+      {
+        "ext": ".tsx",
+        "count": 11
+      },
+      {
+        "ext": ".ts",
+        "count": 7
+      },
+      {
+        "ext": ".md",
+        "count": 3
+      },
+      {
+        "ext": "(none)",
+        "count": 2
+      },
+      {
+        "ext": ".mjs",
+        "count": 2
+      },
+      {
+        "ext": ".tsbuildinfo",
+        "count": 2
+      },
+      {
+        "ext": ".cff",
+        "count": 1
+      },
+      {
+        "ext": ".html",
+        "count": 1
+      },
+      {
+        "ext": ".gif",
+        "count": 1
+      },
+      {
+        "ext": ".mp4",
+        "count": 1
+      },
+      {
+        "ext": ".css",
+        "count": 1
+      }
+    ]
+  },
+  "post": {
+    "title": "Marble Skill Taxonomy",
+    "kind": "Dataset",
+    "topic": "Data & Knowledge",
+    "status": "shipped",
+    "hook": "1,590 things a child learns, wired together by 3,221 prerequisite edges.",
+    "summary": "An open dataset that breaks primary and elementary learning into micro-topics, links them in a prerequisite graph, and aligns them to national curriculum standards. It was released as v1 on 2026-07-08 with validators and an explorer app.",
+    "writeup": "## What it is\nThe Marble Skill Taxonomy is an open, structured map of what children learn in the primary and elementary years. It holds 1,590 micro-topics across 8 subjects, joined by 3,221 prerequisite dependencies, and aligned to 7 curricula with 3,261 standards.\n\n## Why it was made\nMost curriculum data is either a flat list of standards or locked inside a product. This release treats learning as a connected graph, so you can ask what a learner must master before a given idea.\n\n## How it works\nEach topic is a single teachable idea with a plain-language description, mastery evidence, a type (conceptual, procedural, representational, language or meta), a subject, a domain and an age range. Each dependency says topic X depends on prerequisite Y, is tagged hard or soft, and carries a one-line reason. 183 domain clusters give parent-friendly summaries per subject, domain and age band.\n\nThe repo ships plain JSON, JSON Schemas, a dependency-free validator that checks referential integrity and SHA-256 checksums, and a React and Vite explorer.\n\n## Findings\nScience (547) and Mathematics (503) make up most of the topics, followed by English at 286. Of the 3,221 edges, 2,025 are hard and 1,196 are soft. Standards for the UK National Curriculum and Common Core ship with full text. NGSS, C3 and IB PYP ship as codes only, because Marble cannot relicense them.\n\n## Licensing\nThe database is ODbL 1.0, the authored text is CC BY-SA 4.0, and the standards keep their upstream licenses.\n\n## Open questions\nFull text for the codes-only sources depends on rights clearance. Embeddings are excluded from this release, and so is all per-child data.",
+    "tags": [
+      "dataset",
+      "curriculum",
+      "knowledge-graph",
+      "education",
+      "taxonomy",
+      "open-data"
+    ],
+    "accent": "#6e9487",
+    "sources": [
+      {
+        "id": "s1",
+        "path": "README.md",
+        "note": "Counts, subject table, schema examples, licensing"
+      },
+      {
+        "id": "s2",
+        "path": "CHANGELOG.md",
+        "note": "Release contents and exclusions"
+      },
+      {
+        "id": "s3",
+        "path": "PROVENANCE.md",
+        "note": "Codes-only vs full-text standards"
+      },
+      {
+        "id": "s7",
+        "path": "data/dependencies.json",
+        "note": "Hard and soft edge counts"
+      },
+      {
+        "id": "s8",
+        "path": "data/manifest.json",
+        "note": "Counts per subject"
+      },
+      {
+        "id": "s9",
+        "path": "data/topics.json",
+        "note": "Topic types"
+      },
+      {
+        "id": "git",
+        "path": ".git",
+        "note": "Release milestones"
+      }
+    ],
+    "slides": [
+      {
+        "type": "cover",
+        "heading": "Before a child can learn fractions, what else must they know?",
+        "body": "A prerequisite graph of 1,590 micro-topics across 8 subjects."
+      },
+      {
+        "type": "chart",
+        "chart": "bar",
+        "heading": "Where the 1,590 topics live",
+        "x": [
+          "Science",
+          "Mathematics",
+          "English",
+          "History",
+          "Personal & Social",
+          "Life Skills",
+          "Computing",
+          "Learning to Learn"
+        ],
+        "series": [
+          {
+            "name": "Topics",
+            "values": [
+              547,
+              503,
+              286,
+              90,
+              88,
+              37,
+              21,
+              18
+            ]
+          }
+        ],
+        "unit": "topics",
+        "src": "s8",
+        "takeaway": "Science and Mathematics hold about two thirds of the graph."
+      },
+      {
+        "type": "bigNumbers",
+        "heading": "The graph in numbers",
+        "items": [
+          {
+            "value": "1,590",
+            "label": "Micro-topics",
+            "src": "s1"
+          },
+          {
+            "value": "3,221",
+            "label": "Prerequisite edges",
+            "src": "s1"
+          },
+          {
+            "value": "3,261",
+            "label": "Curriculum standards",
+            "src": "s2"
+          },
+          {
+            "value": "183",
+            "label": "Domain clusters",
+            "src": "s1"
+          }
+        ]
+      },
+      {
+        "type": "code",
+        "heading": "One edge, one reason",
+        "lang": "json",
+        "code": "{ \"topicId\": \"mt__00ZSLnB7p\", \"prerequisiteId\": \"mt_VBl1T1sFCM\", \"strength\": \"hard\",\n  \"reason\": \"Must understand vibrations make sound before finding volume patterns\" }",
+        "caption": "topicId depends on prerequisiteId. Reverse it to get unlocks.",
+        "src": "s1"
+      },
+      {
+        "type": "chart",
+        "chart": "donut",
+        "heading": "Hard vs soft prerequisites",
+        "x": [
+          "hard",
+          "soft"
+        ],
+        "series": [
+          {
+            "name": "Edges",
+            "values": [
+              2025,
+              1196
+            ]
+          }
+        ],
+        "unit": "edges",
+        "src": "s7",
+        "takeaway": "Most dependencies are hard, with 1,196 softer links."
+      },
+      {
+        "type": "compare",
+        "heading": "What ships, and how",
+        "src": "s3",
+        "left": {
+          "title": "Full text",
+          "points": [
+            "UK National Curriculum (OGL v3.0)",
+            "Common Core ELA and Math"
+          ]
+        },
+        "right": {
+          "title": "Codes only",
+          "points": [
+            "NGSS K-5 and Middle School",
+            "C3 Framework",
+            "IB PYP PSPE"
+          ]
+        }
+      },
+      {
+        "type": "timeline",
+        "heading": "Shipped in a single day",
+        "src": "git",
+        "events": [
+          {
+            "date": "2026-07-08",
+            "label": "Marble Skill Taxonomy v1 released"
+          },
+          {
+            "date": "2026-07-08",
+            "label": "Docs trimmed of unreleased layers"
+          },
+          {
+            "date": "2026-07-08",
+            "label": "Visualization video and live explorer linked"
+          },
+          {
+            "date": "2026-07-08",
+            "label": "Preview rendered inline as a GIF"
+          }
+        ]
+      },
+      {
+        "type": "takeaway",
+        "heading": "Learning, as a graph you can query",
+        "body": "Plain JSON, a validator and clear licensing make the taxonomy easy to build on."
+      }
+    ]
+  }
+}

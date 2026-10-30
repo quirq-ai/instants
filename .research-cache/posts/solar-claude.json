@@ -1,0 +1,348 @@
+{
+  "slug": "solar-claude",
+  "hash": "ba207e8654b74b4b",
+  "name": "solar-claude",
+  "path": "/Users/surshar/Programming/XO/ClaudeWorkspace/experiments/solar-claude",
+  "origin": "folder",
+  "files": [
+    "README.md",
+    "docs/fly-lab-implementation.md",
+    "docs/fly-lab-plan.md",
+    "docs/fly-space-failures.md",
+    "docs/fly-task-training.md",
+    "docs/fly-xo-space-architecture.md",
+    "public/fly/tutorial/README.md",
+    "public/fly/ATTRIBUTION.md",
+    "package.json",
+    "public/fly/tutorial/train-a-failure-scout-transcript.md",
+    "docs/fly-release-audit.json",
+    "docs/fly-task-audit.json"
+  ],
+  "media": [
+    "/research/media/solar-claude/1.jpg"
+  ],
+  "occurredAt": "2026-07-28T00:40:10.000Z",
+  "generatedAt": "2026-10-30T09:44:26.456Z",
+  "meta": {
+    "fileCount": 140,
+    "bytes": 33072000,
+    "languages": [
+      {
+        "name": "JavaScript",
+        "share": 0.884
+      },
+      {
+        "name": "CSS",
+        "share": 0.09
+      },
+      {
+        "name": "Python",
+        "share": 0.015
+      },
+      {
+        "name": "HTML",
+        "share": 0.011
+      }
+    ],
+    "stack": [
+      "Node.js",
+      "Three.js",
+      "Vite"
+    ],
+    "git": {
+      "commits": 16,
+      "authors": 1,
+      "first": "2026-07-12T14:57:53.000Z",
+      "last": "2026-07-28T00:40:10.000Z",
+      "activity": [
+        {
+          "week": "2026-07-06",
+          "commits": 4
+        },
+        {
+          "week": "2026-07-13",
+          "commits": 8
+        },
+        {
+          "week": "2026-07-20",
+          "commits": 3
+        },
+        {
+          "week": "2026-07-27",
+          "commits": 1
+        }
+      ],
+      "milestones": [
+        {
+          "date": "2026-07-12",
+          "subject": "Initial COmmit"
+        },
+        {
+          "date": "2026-07-13",
+          "subject": "Added Earth and Equation Capture"
+        },
+        {
+          "date": "2026-07-21",
+          "subject": "NEW SPM as a page"
+        },
+        {
+          "date": "2026-07-25",
+          "subject": "Added Light Fractal as well as Euler Equation"
+        },
+        {
+          "date": "2026-07-28",
+          "subject": "Added Tessaract"
+        }
+      ]
+    },
+    "formats": [
+      {
+        "ext": ".js",
+        "count": 90
+      },
+      {
+        "ext": ".jpg",
+        "count": 15
+      },
+      {
+        "ext": ".md",
+        "count": 9
+      },
+      {
+        "ext": ".json",
+        "count": 9
+      },
+      {
+        "ext": ".css",
+        "count": 4
+      },
+      {
+        "ext": ".mjs",
+        "count": 3
+      },
+      {
+        "ext": ".html",
+        "count": 2
+      },
+      {
+        "ext": ".svg",
+        "count": 2
+      },
+      {
+        "ext": ".py",
+        "count": 2
+      },
+      {
+        "ext": ".mp4",
+        "count": 1
+      },
+      {
+        "ext": ".srt",
+        "count": 1
+      },
+      {
+        "ext": ".vtt",
+        "count": 1
+      }
+    ]
+  },
+  "post": {
+    "title": "Solar Claude Observatory",
+    "kind": "Tool",
+    "topic": "Simulation & Science",
+    "status": "working",
+    "hook": "It started as a real solar system and grew into ten physics labs, one with a trained fly.",
+    "summary": "Observatory is a browser workbench built on Three.js for turning a \"what if\" into a live physics experiment you can record. It grew from a real-ephemeris solar system into ten instruments, including a small learning fly controller.",
+    "writeup": "## What it is\nObservatory is a browser-based workbench for exploring how things move. It began as a real-ephemeris solar system and grew into ten instruments that share one engine: Solar System, Equation Lab, Earth Lab, Light Lab, Gravity Lab, Photo Lab, Diffusion Lab, Fractals Lab, Tesseract Lab and the Fly Expedition Lab. It is vanilla ES modules on Three.js and Vite, with no UI framework.\n\n## Why\nThe idea is \"curiosity, experiment, trace\". You pose a question, drive it in real physics with live controls, and keep the evidence: trails, a scrubbable timeline, git-style version commits, fitted equations, PNG snapshots and short WebM recordings.\n\n## How it works\nPlanet positions come from JPL Keplerian elements solved with a Newton-iterated Kepler equation. N-body mode uses a symplectic leapfrog integrator, and force fields use RK4. Earth Lab models mooring chains as quasi-static catenaries. Light Lab uses Snell and Fresnel optics with dispersion.\n\nThe Fly Expedition Lab is the newest branch. A small tile-coded SARSA controller learns scent navigation in a Web Worker. The docs are explicit that it is a reduced software model, not a whole-brain emulation. A second mode, Report Scout, trains a file-ranking policy to find failure evidence in synthetic workspaces.\n\n## Results\nAgainst 50 held-out worlds, varied training averaged 84.7% success versus 2% untrained. One varied seed reached only 27 of 50 arrivals, so the result is not uniform. Report Scout reached 100% coverage on its held-out synthetic split, compared with 0% for filename matching.\n\n## Open questions\nThe xo-space adapter that would run exported scouts is still planned. The Changing World and Evolution Arena experiments remain future work. Report Scout's results apply only to its constructed synthetic collection.",
+    "tags": [
+      "three.js",
+      "physics",
+      "simulation",
+      "reinforcement-learning",
+      "vite",
+      "fractals"
+    ],
+    "accent": "#83d63a",
+    "sources": [
+      {
+        "id": "s1",
+        "path": "README.md",
+        "note": "Instruments, methods, quick start"
+      },
+      {
+        "id": "s2",
+        "path": "docs/fly-lab-implementation.md",
+        "note": "Fly training results by seed"
+      },
+      {
+        "id": "s4",
+        "path": "docs/fly-space-failures.md",
+        "note": "Report Scout held-out coverage"
+      },
+      {
+        "id": "s10",
+        "path": "public/fly/tutorial/train-a-failure-scout-transcript.md",
+        "note": "Tutorial context"
+      },
+      {
+        "id": "git",
+        "path": ".git"
+      }
+    ],
+    "slides": [
+      {
+        "type": "cover",
+        "heading": "A telescope and a lab notebook in the same browser tab",
+        "body": "Ask a physics question, run it live, keep the trace.",
+        "image": "/research/media/solar-claude/1.jpg"
+      },
+      {
+        "type": "table",
+        "heading": "Ten instruments, one engine",
+        "columns": [
+          "Instrument",
+          "Domain"
+        ],
+        "rows": [
+          [
+            "Solar System",
+            "Celestial mechanics"
+          ],
+          [
+            "Earth Lab",
+            "Geophysics and offshore engineering"
+          ],
+          [
+            "Light Lab",
+            "Geometric optics"
+          ],
+          [
+            "Gravity Lab",
+            "Orbital mechanics + QG toys"
+          ],
+          [
+            "Diffusion Lab",
+            "Enclosed-room transport"
+          ],
+          [
+            "Fractals Lab",
+            "Complex dynamics + IFS"
+          ],
+          [
+            "Tesseract Lab",
+            "4D geometry + OCR + artifact"
+          ],
+          [
+            "Fly Expedition Lab",
+            "Learning and scent navigation"
+          ]
+        ],
+        "src": "s1"
+      },
+      {
+        "type": "table",
+        "heading": "Can a trained fly find food?",
+        "columns": [
+          "Condition",
+          "Arrivals out of 50, by training seed"
+        ],
+        "rows": [
+          [
+            "Untrained",
+            "1"
+          ],
+          [
+            "Reactive scent follower",
+            "50"
+          ],
+          [
+            "Steady curriculum",
+            "50, 49, 50"
+          ],
+          [
+            "Varied curriculum",
+            "50, 27, 50"
+          ]
+        ],
+        "highlight": 3,
+        "src": "s2"
+      },
+      {
+        "type": "bigNumbers",
+        "heading": "Training lifts success from near zero",
+        "items": [
+          {
+            "value": "84.7%",
+            "label": "Varied training avg success",
+            "src": "s2"
+          },
+          {
+            "value": "2%",
+            "label": "Untrained success",
+            "src": "s2"
+          },
+          {
+            "value": "16",
+            "label": "Commits over the project",
+            "src": "git"
+          }
+        ]
+      },
+      {
+        "type": "chart",
+        "chart": "bar",
+        "heading": "Report Scout coverage on held-out data",
+        "x": [
+          "Learned scout",
+          "Filename matching",
+          "Seeded random"
+        ],
+        "series": [
+          {
+            "name": "Coverage",
+            "values": [
+              100,
+              0,
+              44.4
+            ]
+          }
+        ],
+        "unit": "%",
+        "takeaway": "On a constructed synthetic collection, the learned reader found every relevant file.",
+        "src": "s4"
+      },
+      {
+        "type": "timeline",
+        "heading": "Sixteen days, five milestones",
+        "events": [
+          {
+            "date": "2026-07-12",
+            "label": "First commit"
+          },
+          {
+            "date": "2026-07-13",
+            "label": "Earth and equation capture"
+          },
+          {
+            "date": "2026-07-21",
+            "label": "SPM becomes a page"
+          },
+          {
+            "date": "2026-07-25",
+            "label": "Light fractal and Euler equation"
+          },
+          {
+            "date": "2026-07-28",
+            "label": "Tesseract added"
+          }
+        ],
+        "src": "git"
+      },
+      {
+        "type": "takeaway",
+        "heading": "A question, a live model, and a trace you can reopen",
+        "body": "One shared engine now hosts ten labs, from real ephemerides to a small learning fly."
+      }
+    ]
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "slug": "remotion-studio",
+  "hash": "873423d1e4f3c7ef",
+  "name": "remotion-studio",
+  "path": "/Users/surshar/Programming/XO/ClaudeWorkspace/experiments/remotion-studio",
+  "origin": "folder",
+  "files": [
+    "package.json"
+  ],
+  "media": [],
+  "occurredAt": "2026-01-25T10:02:15.349Z",
+  "generatedAt": "2026-10-30T09:44:05.712Z",
+  "meta": {
+    "fileCount": 1,
+    "bytes": 496,
+    "languages": [],
+    "stack": [
+      "Node.js",
+      "React",
+      "Remotion",
+      "TypeScript"
+    ],
+    "formats": [
+      {
+        "ext": ".json",
+        "count": 1
+      }
+    ]
+  },
+  "post": {
+    "title": "Remotion Studio Starter",
+    "kind": "Prototype",
+    "topic": "Media & Video",
+    "status": "idea",
+    "hook": "A video project that is just one package.json and three commands.",
+    "summary": "A bare Remotion starter for making videos with React and TypeScript. Only the package.json exists, so it is a scaffold waiting for compositions.",
+    "writeup": "**What it is:** a minimal Remotion starter project. The folder holds a single package.json, described as \"Simple Remotion starter project\".\n\n**Why:** a clean base for programmatic video in React, kept separate from other video experiments.\n\n**How it works:** three scripts cover the loop. `start` runs `npx remotion studio` for live preview. `build` runs `npx remotion render src/index.ts HelloWorld out/video.mp4` to render a composition called HelloWorld. `upgrade` runs `npx remotion upgrade`. Remotion and @remotion/cli are both pinned to 4.0.242, alongside React ^18.3.1 and TypeScript ^5.7.2.\n\n**Findings:** none yet. The build script points at src/index.ts and a HelloWorld composition, but neither is in the folder, and it is not a git repo, so there is no history.\n\n**Open questions:** will this get real compositions, or has it been superseded by other Remotion work?",
+    "tags": [
+      "remotion",
+      "react",
+      "typescript",
+      "video",
+      "starter"
+    ],
+    "accent": "#0b84f3",
+    "sources": [
+      {
+        "id": "s1",
+        "path": "package.json",
+        "note": "Scripts, dependency versions and description"
+      }
+    ],
+    "slides": [
+      {
+        "type": "cover",
+        "heading": "A video project that is just one package.json and three commands.",
+        "body": "A bare Remotion starter, ready for React compositions."
+      },
+      {
+        "type": "code",
+        "heading": "The whole workflow in three scripts",
+        "lang": "json",
+        "code": "\"scripts\": {\n  \"start\": \"npx remotion studio\",\n  \"build\": \"npx remotion render src/index.ts HelloWorld out/video.mp4\",\n  \"upgrade\": \"npx remotion upgrade\"\n},\n\"dependencies\": {\n  \"@remotion/cli\": \"4.0.242\",\n  \"remotion\": \"4.0.242\"\n}",
+        "caption": "Preview in Studio, render HelloWorld to MP4, upgrade Remotion.",
+        "src": "s1"
+      },
+      {
+        "type": "takeaway",
+        "heading": "A scaffold, not yet a film",
+        "body": "Remotion 4.0.242 is pinned, but the source files are missing, so it is ready for compositions that do not exist yet."
+      }
+    ]
+  }
+}

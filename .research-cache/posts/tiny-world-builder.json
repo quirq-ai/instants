@@ -1,0 +1,364 @@
+{
+  "slug": "tiny-world-builder",
+  "hash": "6f92c0b94aab0d8d",
+  "name": "tiny-world-builder",
+  "path": "/Users/surshar/Programming/XO/ClaudeWorkspace/experiments/tiny-world-builder",
+  "origin": "folder",
+  "files": [
+    "README.md",
+    "plans/README.md",
+    "models/animals/readme.txt",
+    "plugins/examples/README.md",
+    "docs/code-review-recent-commits.md",
+    "docs/community-webhook.md",
+    "docs/DESIGN.md",
+    "docs/i18n.md",
+    "docs/SHADERS.md",
+    "docs/worlds.md",
+    "models/people/orcs/readme.txt",
+    "models/people/swordsman/readme.txt",
+    "docs/superpowers/plans/2026-05-31-partykit-shared-building.md",
+    "docs/superpowers/plans/2026-06-01-stunt-plane-combat.md",
+    "docs/superpowers/plans/2026-06-03-object-inspector.md"
+  ],
+  "media": [
+    "/research/media/tiny-world-builder/1.jpg",
+    "/research/media/tiny-world-builder/2.png",
+    "/research/media/tiny-world-builder/3.jpg",
+    "/research/media/tiny-world-builder/4.jpg",
+    "/research/media/tiny-world-builder/5.jpg",
+    "/research/media/tiny-world-builder/6.jpg",
+    "/research/media/tiny-world-builder/7.jpg",
+    "/research/media/tiny-world-builder/8.jpg"
+  ],
+  "occurredAt": "2026-06-19T01:07:31.000Z",
+  "generatedAt": "2026-10-30T09:44:32.241Z",
+  "meta": {
+    "fileCount": 2388,
+    "bytes": 329214418,
+    "languages": [
+      {
+        "name": "JavaScript",
+        "share": 0.825
+      },
+      {
+        "name": "HTML",
+        "share": 0.124
+      },
+      {
+        "name": "CSS",
+        "share": 0.042
+      },
+      {
+        "name": "SQL",
+        "share": 0.006
+      },
+      {
+        "name": "Shell",
+        "share": 0.001
+      },
+      {
+        "name": "Python",
+        "share": 0.001
+      }
+    ],
+    "stack": [
+      "Node.js",
+      "Claude Agent SDK",
+      "Anthropic SDK"
+    ],
+    "git": {
+      "commits": 651,
+      "authors": 7,
+      "first": "2026-05-10T21:44:48.000Z",
+      "last": "2026-06-19T01:07:31.000Z",
+      "activity": [
+        {
+          "week": "2026-05-04",
+          "commits": 12
+        },
+        {
+          "week": "2026-05-11",
+          "commits": 147
+        },
+        {
+          "week": "2026-05-18",
+          "commits": 29
+        },
+        {
+          "week": "2026-05-25",
+          "commits": 110
+        },
+        {
+          "week": "2026-06-01",
+          "commits": 183
+        },
+        {
+          "week": "2026-06-08",
+          "commits": 68
+        },
+        {
+          "week": "2026-06-15",
+          "commits": 102
+        }
+      ],
+      "milestones": [
+        {
+          "date": "2026-05-10",
+          "subject": "Initial Commit"
+        },
+        {
+          "date": "2026-05-10",
+          "subject": "Add publish script, remove hill feature, export fixes"
+        },
+        {
+          "date": "2026-05-16",
+          "subject": "Add backdrop glow control, lit windows, ambient crop dusters; cap grid at 48x48"
+        },
+        {
+          "date": "2026-05-25",
+          "subject": "Add voxel stone tower, waterfall & stamp UI"
+        },
+        {
+          "date": "2026-05-25",
+          "subject": "Add Stamp panel; update DREAMING & SKILLs"
+        },
+        {
+          "date": "2026-05-30",
+          "subject": "Add flight sim, tool palette, and UI tweaks"
+        },
+        {
+          "date": "2026-06-04",
+          "subject": "Add sub-object editing, part rotation & play mode"
+        },
+        {
+          "date": "2026-06-19",
+          "subject": "Add living-lobby plans and onboarding audit"
+        }
+      ]
+    },
+    "formats": [
+      {
+        "ext": ".png",
+        "count": 1410
+      },
+      {
+        "ext": ".aseprite",
+        "count": 429
+      },
+      {
+        "ext": ".psd",
+        "count": 186
+      },
+      {
+        "ext": ".js",
+        "count": 131
+      },
+      {
+        "ext": ".mjs",
+        "count": 55
+      },
+      {
+        "ext": ".md",
+        "count": 36
+      },
+      {
+        "ext": ".mp3",
+        "count": 29
+      },
+      {
+        "ext": ".html",
+        "count": 19
+      },
+      {
+        "ext": ".sql",
+        "count": 19
+      },
+      {
+        "ext": ".json",
+        "count": 13
+      },
+      {
+        "ext": ".tmx",
+        "count": 10
+      },
+      {
+        "ext": ".txt",
+        "count": 8
+      }
+    ]
+  },
+  "post": {
+    "title": "Tiny World Builder",
+    "kind": "Prototype",
+    "topic": "Graphics & Visualization",
+    "status": "working",
+    "hook": "A browser voxel world editor that grew into flight combat and multiplayer.",
+    "summary": "A self-contained 3D voxel world editor in the browser for building, sculpting, flying through and sharing tiny worlds. It reached 651 commits in about six weeks and picked up multiplayer, flight combat and an on-chain worlds mode.",
+    "writeup": "## What it is\nTiny World Builder is a 3D voxel world editor that runs in the browser. You place terrain, houses, trees, crops and animals, sculpt the ground, switch camera modes, fly through the result and share it.\n\n## Why it exists\nThe goal is a toy-like diorama where the 3D scene is the hero and the UI floats above it as frosted glass. The design doc describes a warm parchment world with one blue accent.\n\n## How it works\nThe app is a single script of roughly 29k lines of vanilla JS, split later into engine modules. `world[x][z]` holds intent, `cellMeshes` holds the rendered Three.js groups, and `setCell(x, z, opts)` is the single mutation entry point. It re-renders neighbors so roads join, fences connect and houses form L, T and square buildings.\n\nAround that core sit several layers:\n- Mesh Terrain sculptor with flat-topped voxels\n- Seeded vehicle road demos with live traffic blockers\n- PartyKit shared building with remote cursors\n- Stunt-plane combat plans: guns, HUD, guided missiles\n- A worlds mode where players buy land with USDC\n- i18n in English, French, Spanish and Chinese\n\n## Results\nThe repo has 651 commits from 7 authors between 2026-05-10 and 2026-06-19. The busiest week was 2026-06-01 with 183 commits. An advisor pass produced 6 plans, all marked DONE. A review of recent commits found 20 issues: 3 high, 3 medium and 14 low.\n\n## Open questions\nPlan 005 shipped 3 of 4 tests because mock.module() needs a flag the test script lacks. The latest commit adds living-lobby plans and an onboarding audit, so the first-run experience is still being shaped.",
+    "tags": [
+      "voxel",
+      "threejs",
+      "browser",
+      "multiplayer",
+      "partykit",
+      "editor"
+    ],
+    "accent": "#3a72c8",
+    "sources": [
+      {
+        "id": "s1",
+        "path": "README.md",
+        "note": "overview, architecture, line count"
+      },
+      {
+        "id": "s2",
+        "path": "plans/README.md",
+        "note": "advisor plan statuses"
+      },
+      {
+        "id": "s5",
+        "path": "docs/code-review-recent-commits.md",
+        "note": "severity tally"
+      },
+      {
+        "id": "s7",
+        "path": "docs/DESIGN.md",
+        "note": "design identity"
+      },
+      {
+        "id": "s10",
+        "path": "docs/worlds.md",
+        "note": "on-chain worlds mode"
+      },
+      {
+        "id": "s13",
+        "path": "docs/superpowers/plans/2026-05-31-partykit-shared-building.md",
+        "note": "multiplayer plan"
+      },
+      {
+        "id": "s14",
+        "path": "docs/superpowers/plans/2026-06-01-stunt-plane-combat.md",
+        "note": "combat plan"
+      },
+      {
+        "id": "git",
+        "path": ".git"
+      }
+    ],
+    "slides": [
+      {
+        "type": "cover",
+        "heading": "A toy diorama editor that quietly grew flight combat and multiplayer",
+        "body": "Build, sculpt, fly and share tiny voxel worlds in the browser.",
+        "image": "/research/media/tiny-world-builder/1.jpg"
+      },
+      {
+        "type": "image",
+        "image": "/research/media/tiny-world-builder/7.jpg",
+        "caption": "Build mode: place terrain, props, homes, paths, crops and animals."
+      },
+      {
+        "type": "chart",
+        "chart": "bar",
+        "heading": "Commits per week, 7 weeks",
+        "x": [
+          "05-04",
+          "05-11",
+          "05-18",
+          "05-25",
+          "06-01",
+          "06-08",
+          "06-15"
+        ],
+        "series": [
+          {
+            "name": "Commits",
+            "values": [
+              12,
+              147,
+              29,
+              110,
+              183,
+              68,
+              102
+            ]
+          }
+        ],
+        "unit": "commits",
+        "src": "git",
+        "takeaway": "Activity came in bursts, peaking at 183 commits the week of 2026-06-01."
+      },
+      {
+        "type": "timeline",
+        "heading": "From first commit to living lobby",
+        "src": "git",
+        "events": [
+          {
+            "date": "2026-05-10",
+            "label": "First commit and publish script"
+          },
+          {
+            "date": "2026-05-16",
+            "label": "Backdrop glow, lit windows, crop dusters"
+          },
+          {
+            "date": "2026-05-25",
+            "label": "Voxel stone tower, waterfall and stamp UI"
+          },
+          {
+            "date": "2026-05-30",
+            "label": "Flight sim and tool palette"
+          },
+          {
+            "date": "2026-06-04",
+            "label": "Sub-object editing and play mode"
+          },
+          {
+            "date": "2026-06-19",
+            "label": "Living-lobby plans and onboarding audit"
+          }
+        ]
+      },
+      {
+        "type": "code",
+        "heading": "One mutation entry point",
+        "lang": "text",
+        "code": "world[x][z]      intent: { terrain, kind, floors }\ncellMeshes['x,z'] rendered Three.js groups\nsetCell(x, z, opts)\n  updates world, rebuilds the cell,\n  re-renders neighbors for adjacency",
+        "caption": "Everything, including multiplayer edits, routes through setCell.",
+        "src": "s1"
+      },
+      {
+        "type": "bigNumbers",
+        "heading": "Review findings and scale",
+        "items": [
+          {
+            "value": "651",
+            "label": "commits in the repo",
+            "src": "git"
+          },
+          {
+            "value": "20",
+            "label": "issues in recent-commit review",
+            "src": "s5"
+          },
+          {
+            "value": "3",
+            "label": "of those rated high severity",
+            "src": "s5"
+          },
+          {
+            "value": "29k",
+            "label": "lines of vanilla JS at first",
+            "src": "s1"
+          }
+        ]
+      },
+      {
+        "type": "takeaway",
+        "heading": "One clean contract keeps a big toy honest",
+        "body": "A single setCell path let multiplayer, undo and combat share the same world."
+      }
+    ]
+  }
+}

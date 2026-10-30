@@ -1,0 +1,267 @@
+{
+  "slug": "space",
+  "hash": "13d750041bd14560",
+  "name": "space",
+  "path": "/Users/surshar/Programming/XO/ClaudeWorkspace/experiments/space",
+  "origin": "folder",
+  "files": [
+    "solar-system/README.md",
+    "space-walk/README.md",
+    "space-walk/schema/report.schema.json",
+    "space-walk/internal/model/report.go",
+    "space-walk/internal/server/reportindex_test.go",
+    "space-walk/internal/server/reportindex.go",
+    "space-walk/internal/adapter/claudecode/summary_inputs_test.go",
+    "space-walk/internal/adapter/codex/summary_inputs_test.go",
+    "space-walk/web/src/ui/ReportPanel.tsx",
+    "space-walk/docs/dynamic-rubric-evaluation.md",
+    "space-walk/docs/palette-validation.md",
+    "solar-system/AGENTS.md",
+    "space-walk/AGENTS.md",
+    "solar-system/package.json",
+    "space-walk/schema/agent-graph.schema.json",
+    "space-walk/schema/citymap.schema.json",
+    "space-walk/schema/trace.schema.json",
+    "space-walk/testdata/claude-session.jsonl",
+    "space-walk/web/package.json",
+    "space-walk/testdata/agent-lens/browser-fixtures.json",
+    "solar-system/pnpm-workspace.yaml",
+    "solar-system/eslint.config.mjs",
+    "solar-system/next-env.d.ts",
+    "solar-system/next.config.ts"
+  ],
+  "media": [
+    "/research/media/space/1.png",
+    "/research/media/space/2.png"
+  ],
+  "occurredAt": "2026-09-22T19:43:21.903Z",
+  "generatedAt": "2026-10-30T09:44:32.902Z",
+  "meta": {
+    "fileCount": 159,
+    "bytes": 9290355,
+    "languages": [
+      {
+        "name": "JavaScript",
+        "share": 0.441
+      },
+      {
+        "name": "Go",
+        "share": 0.282
+      },
+      {
+        "name": "TypeScript",
+        "share": 0.22
+      },
+      {
+        "name": "CSS",
+        "share": 0.055
+      },
+      {
+        "name": "HTML",
+        "share": 0.001
+      },
+      {
+        "name": "Shell",
+        "share": 0.001
+      }
+    ],
+    "stack": [
+      "Node.js",
+      "React Three Fiber",
+      "Next.js",
+      "React",
+      "Three.js",
+      "Tailwind CSS",
+      "TypeScript",
+      "Go"
+    ],
+    "formats": [
+      {
+        "ext": ".go",
+        "count": 51
+      },
+      {
+        "ext": ".ts",
+        "count": 24
+      },
+      {
+        "ext": ".tsx",
+        "count": 19
+      },
+      {
+        "ext": ".json",
+        "count": 10
+      },
+      {
+        "ext": ".jpg",
+        "count": 10
+      },
+      {
+        "ext": ".md",
+        "count": 8
+      },
+      {
+        "ext": ".woff2",
+        "count": 8
+      },
+      {
+        "ext": ".svg",
+        "count": 6
+      },
+      {
+        "ext": ".css",
+        "count": 3
+      },
+      {
+        "ext": ".png",
+        "count": 3
+      },
+      {
+        "ext": ".js",
+        "count": 3
+      },
+      {
+        "ext": ".mjs",
+        "count": 2
+      }
+    ]
+  },
+  "post": {
+    "title": "Space Walk: Agent Session Replay",
+    "kind": "Tool",
+    "topic": "AI & Agents",
+    "status": "working",
+    "hook": "Your agent's session log, replayed as light moving across a night map of the repo.",
+    "summary": "Space Walk is a Go and React tool that replays Claude Code, Codex, and pi sessions on a 3D map of the codebase, with an optional LLM judge. The repo also holds a small Next.js solar-system starter.",
+    "writeup": "## What it is\nSpace Walk is XO Labs' fork of mindwalk (MIT). One Go binary reads Claude Code, Codex, and pi session logs and draws the repository as a night map. Playback shows where the agent searched, read, and edited: those files glow, everything else stays dark. Viewing is fully local.\n\n## Why\nA session log records what an agent did, but not how it understood the task. Reading raw JSONL does not tell you which parts of the repo it treated as relevant, or whether its footprint matched the scope you had in mind.\n\n## How it works\nThree artifacts stay separate: a normalized trace, a deterministic citymap of the repo, and an evaluation report. Each agent format sits behind its own adapter. The UI offers Tree and Terrain views, a playback deck, timeline marks, subagent lenses, and a file inspector.\n\nEvaluation is opt-in. A judge CLI (claude or codex) runs with no tools in up to two calls: one drafts a task rubric from your own requests, one scores four fixed dimensions (exploration, scope, wandering, verification) plus the rubric. Verdicts are derived mechanically from finding severities, never decided by the LLM. Rubrics are capped at 6 tasks and 3 to 12 criteria.\n\n## Findings\nThe brand palette failed as a categorical encoding on the night surface: seen and edited sat at a normal-vision ΔE of 11.1, below the 15 floor. So the shipped colors are OKLCH derivations, validated for color-vision separation and contrast.\n\n## Also in the folder\nA small Next.js 16 and React Three Fiber starter called solar-system, still the default create-next-app scaffold.\n\n## Open questions\nNo releases are published yet, so installation is from source only. The solar-system starter has no scene yet.",
+    "tags": [
+      "agents",
+      "visualization",
+      "go",
+      "three-js",
+      "observability",
+      "claude-code"
+    ],
+    "accent": "#78a31e",
+    "sources": [
+      {
+        "id": "s2",
+        "path": "space-walk/README.md",
+        "note": "Problem, idea, views, commands"
+      },
+      {
+        "id": "s9",
+        "path": "space-walk/web/src/ui/ReportPanel.tsx",
+        "note": "Dimension definitions excerpt"
+      },
+      {
+        "id": "s10",
+        "path": "space-walk/docs/dynamic-rubric-evaluation.md",
+        "note": "Rubric design and caps"
+      },
+      {
+        "id": "s11",
+        "path": "space-walk/docs/palette-validation.md",
+        "note": "Palette table and validation results"
+      },
+      {
+        "id": "s13",
+        "path": "space-walk/AGENTS.md",
+        "note": "Architecture and artifacts"
+      },
+      {
+        "id": "s14",
+        "path": "solar-system/package.json",
+        "note": "Starter stack"
+      }
+    ],
+    "slides": [
+      {
+        "type": "cover",
+        "heading": "What does an agent's understanding of a task look like?",
+        "body": "Space Walk turns session logs into a glowing 3D map of the repo.",
+        "image": "/research/media/space/1.png"
+      },
+      {
+        "type": "image",
+        "image": "/research/media/space/2.png",
+        "caption": "Tree view: the repo as a radial tree, glow scaled by how deeply a file was touched.",
+        "fit": "cover"
+      },
+      {
+        "type": "quote",
+        "text": "The agent's understanding of the task becomes a shape you can see at a glance.",
+        "verbatim": true,
+        "attribution": "Space Walk README",
+        "src": "s2"
+      },
+      {
+        "type": "table",
+        "heading": "Colors tuned so seen and edited differ",
+        "columns": [
+          "Role",
+          "Hex",
+          "OKLCH"
+        ],
+        "rows": [
+          [
+            "Touch: seen / hit",
+            "#6a6700",
+            "L 0.50 C 0.11 h 108"
+          ],
+          [
+            "Touch: read",
+            "#5399d1",
+            "L 0.64 C 0.11 h 245"
+          ],
+          [
+            "Touch: edited",
+            "#78a31e",
+            "L 0.66 C 0.16 h 127"
+          ],
+          [
+            "Action: verify",
+            "#477120",
+            "L 0.50 C 0.12 h 133"
+          ]
+        ],
+        "src": "s11",
+        "highlight": 2
+      },
+      {
+        "type": "code",
+        "heading": "Four fixed questions for every session",
+        "lang": "tsx",
+        "code": "const DIMENSION_WORDS: Record<string, { title: string; hint: string }> = {\n  exploration: { title: \"Exploration\", hint: \"Did the agent build enough understanding before editing?\" },\n  scope: { title: \"Scope\", hint: \"Does the footprint match what the task needed?\" },\n  wandering: { title: \"Wandering\", hint: \"Purposeful path, or circles and dead ends?\" },\n  verification: { title: \"Verification\", hint: \"Were edits verified, and errors followed up?\" }\n};",
+        "caption": "The judge always scores these; the task rubric only adds to them.",
+        "src": "s9"
+      },
+      {
+        "type": "compare",
+        "heading": "Fixed dimensions vs task rubric",
+        "left": {
+          "title": "Fixed dimensions",
+          "points": [
+            "Process lenses for code editing",
+            "Always present, enforced by Go",
+            "Too harsh on research sessions"
+          ]
+        },
+        "right": {
+          "title": "Dynamic rubric",
+          "points": [
+            "Criteria drafted from your request",
+            "Adds to the fixed layer, never replaces",
+            "Unverifiable items lower coverage"
+          ]
+        },
+        "src": "s10"
+      },
+      {
+        "type": "takeaway",
+        "heading": "Judge the path, not just the diff",
+        "body": "Seeing where an agent looked before it edited says more about its grasp of the task than the final change does."
+      }
+    ]
+  }
+}

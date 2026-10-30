@@ -8,15 +8,10 @@ const eslintConfig = defineConfig([
   // Generated state and vendored build tooling are outside application lint.
   globalIgnores([
     ".next/**",
-    ".vinext/**",
-    ".wrangler/**",
-    ".sites-runtime/**",
     "dist/**",
     "out/**",
     "build/**",
     "vendor/**",
-    "test-results/**",
-    "playwright-report/**",
     "next-env.d.ts",
   ]),
   {
@@ -29,14 +24,6 @@ const eslintConfig = defineConfig([
       "react-hooks/refs": "off",
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "error",
-    },
-  },
-  {
-    files: ["components/instagram/shared.tsx"],
-    rules: {
-      // The photo primitive supports local uploads and direct external image
-      // URLs with explicit loading/error states, without an image proxy.
-      "@next/next/no-img-element": "off",
     },
   },
   {

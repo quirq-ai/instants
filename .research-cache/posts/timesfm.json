@@ -1,0 +1,210 @@
+{
+  "slug": "timesfm",
+  "hash": "73d7fabeec74ae15",
+  "name": "timesfm",
+  "path": "/Users/surshar/Programming/XO/ClaudeWorkspace/experiments/timesfm",
+  "origin": "folder",
+  "files": [
+    "README.md",
+    "AGENTS.md",
+    "requirements.txt",
+    "TIMESFM-USE-CASES.md",
+    "timesfm-forecasting/SKILL.md",
+    "pyproject.toml",
+    "timesfm-forecasting/examples/anomaly-detection/output/anomaly_detection.json",
+    "tests/__init__.py",
+    "tests/test_base_utils.py",
+    "tests/test_configs.py",
+    "tests/test_model_loading.py",
+    "tests/test_torch_layers.py",
+    "tests/test_torch_utils.py",
+    "src/timesfm/__init__.py",
+    "src/timesfm/configs.py",
+    "src/timesfm/flax/__init__.py",
+    "src/timesfm/flax/dense.py",
+    "src/timesfm/flax/normalization.py",
+    "src/timesfm/flax/transformer.py"
+  ],
+  "media": [],
+  "occurredAt": "2026-07-02T18:56:21.000Z",
+  "generatedAt": "2026-10-30T09:39:46.492Z",
+  "meta": {
+    "fileCount": 31,
+    "bytes": 226560,
+    "languages": [
+      {
+        "name": "Python",
+        "share": 1
+      }
+    ],
+    "stack": [
+      "Python",
+      "NumPy",
+      "PyTorch",
+      "JAX"
+    ],
+    "git": {
+      "commits": 1,
+      "authors": 1,
+      "first": "2026-07-02T18:56:21.000Z",
+      "last": "2026-07-02T18:56:21.000Z",
+      "activity": [
+        {
+          "week": "2026-06-29",
+          "commits": 1
+        }
+      ],
+      "milestones": [
+        {
+          "date": "2026-07-02",
+          "subject": "Update README.md"
+        }
+      ]
+    },
+    "formats": [
+      {
+        "ext": ".py",
+        "count": 23
+      },
+      {
+        "ext": ".md",
+        "count": 4
+      },
+      {
+        "ext": "(none)",
+        "count": 1
+      },
+      {
+        "ext": ".toml",
+        "count": 1
+      },
+      {
+        "ext": ".txt",
+        "count": 1
+      },
+      {
+        "ext": ".json",
+        "count": 1
+      }
+    ]
+  },
+  "post": {
+    "title": "TimesFM Forecasting Skill",
+    "kind": "Tool",
+    "topic": "AI & Agents",
+    "status": "working",
+    "hook": "A forecasting model that needs no training, now packaged as an agent skill.",
+    "summary": "A snapshot of Google Research's TimesFM time-series foundation model repo, including the 2.5 model, tests, and an agent skill for zero-shot forecasting and anomaly detection.",
+    "writeup": "## What it is\nTimesFM is Google Research's pretrained, decoder-only foundation model for time-series forecasting. This folder is a snapshot of the open repo: the `src/timesfm` package with PyTorch and Flax backends, a `tests/` suite, and a `timesfm-forecasting/` agent skill.\n\n## Why it matters\nThe pitch is zero-shot forecasting. You give it a history and get a horizon plus quantile bands, with no per-series training. The use-cases doc frames it as \"GPT for time series\", trained on on the order of 100B+ real-world time-points.\n\n## How it works\nLoad `TimesFM_2p5_200M_torch` from Hugging Face, compile a frozen `ForecastConfig` (context, horizon, normalization, quantile head), then call `forecast`. Output is a point forecast plus a quantile array of shape (2, 12, 10), the mean followed by the 10th to 90th quantiles.\n\nTimesFM 2.5 uses 200M parameters, down from 500M, and supports up to 16k context, up from 2048. The skill adds a mandatory preflight check for RAM, GPU memory, and disk before loading weights (about 800 MB).\n\n## Findings\nThe bundled anomaly example uses a two-phase method: detrend plus z-score on history, then quantile intervals on the forecast. On 36 context points it flags 1 critical. On the 12 forecast points, it flags 4 critical, 1 warning, and 7 normal. Three of the 12 points were injected anomalies.\n\n## Open questions\nGit history here is a single commit, so there is no evolution to study. The tests cover configs, layers, and utilities, but forecast quality is not benchmarked in this folder. Fine-tuning with LoRA is mentioned as an example, but its code is not in the material.",
+    "tags": [
+      "forecasting",
+      "time-series",
+      "foundation-model",
+      "agent-skill",
+      "pytorch",
+      "jax"
+    ],
+    "accent": "#4285f4",
+    "sources": [
+      {
+        "id": "s1",
+        "path": "README.md",
+        "note": "model overview, 2.5 changes, install and code example"
+      },
+      {
+        "id": "s4",
+        "path": "TIMESFM-USE-CASES.md",
+        "note": "use cases and training corpus framing"
+      },
+      {
+        "id": "s5",
+        "path": "timesfm-forecasting/SKILL.md",
+        "note": "hardware table, preflight checker, anomaly severity"
+      },
+      {
+        "id": "s7",
+        "path": "timesfm-forecasting/examples/anomaly-detection/output/anomaly_detection.json",
+        "note": "anomaly counts"
+      },
+      {
+        "id": "git",
+        "path": ".git"
+      }
+    ],
+    "slides": [
+      {
+        "type": "cover",
+        "heading": "Forecast anything without training a model",
+        "body": "Google's TimesFM, wrapped as an agent skill with a RAM check before it loads."
+      },
+      {
+        "type": "table",
+        "heading": "Three versions, one clear winner",
+        "columns": [
+          "Model",
+          "Parameters",
+          "RAM (CPU)",
+          "Context"
+        ],
+        "rows": [
+          [
+            "TimesFM 2.5",
+            "200M",
+            "≥ 4 GB",
+            "up to 16,384"
+          ],
+          [
+            "TimesFM 2.0 (archived)",
+            "500M",
+            "≥ 16 GB",
+            "up to 2,048"
+          ],
+          [
+            "TimesFM 1.0 (archived)",
+            "200M",
+            "≥ 8 GB",
+            "up to 2,048"
+          ]
+        ],
+        "highlight": 0,
+        "src": "s5"
+      },
+      {
+        "type": "code",
+        "heading": "Compile once, forecast in a call",
+        "lang": "python",
+        "code": "model = timesfm.TimesFM_2p5_200M_torch.from_pretrained(\"google/timesfm-2.5-200m-pytorch\")\n\nmodel.compile(\n    timesfm.ForecastConfig(\n        max_context=1024,\n        max_horizon=256,\n        normalize_inputs=True,\n        use_continuous_quantile_head=True,\n        force_flip_invariance=True,\n        infer_is_positive=True,\n        fix_quantile_crossing=True,\n    )\n)",
+        "caption": "Output quantiles have shape (2, 12, 10): mean, then 10th to 90th.",
+        "src": "s1"
+      },
+      {
+        "type": "chart",
+        "chart": "bar",
+        "heading": "Anomaly demo: what got flagged",
+        "x": [
+          "Normal",
+          "Warning",
+          "Critical"
+        ],
+        "series": [
+          {
+            "name": "Forecast points (12)",
+            "values": [
+              7,
+              1,
+              4
+            ]
+          }
+        ],
+        "unit": "points",
+        "takeaway": "Of 12 forecast points, 4 were critical; 3 of the 12 were injected anomalies.",
+        "src": "s7"
+      },
+      {
+        "type": "takeaway",
+        "heading": "Foundation models make forecasting a function call",
+        "body": "TimesFM 2.5 is smaller than 2.0 yet reads 16k points of context, and the skill guards the machine first."
+      }
+    ]
+  }
+}
