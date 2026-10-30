@@ -150,10 +150,42 @@ function serial<T>(fn: () => Promise<T>): Promise<T> {
 function cliEnv() {
   const env = { ...process.env };
   for (const key of Object.keys(env)) if (key.startsWith("CLAUDE") || key === "ANTHROPIC_BASE_URL") delete env[key];
+  // Env files and dashboards often keep the quotes or a newline around a pasted token.
+  if (env.SPACEHUB_TOKEN) env.SPACEHUB_TOKEN = env.SPACEHUB_TOKEN.trim().replace(/^(["'])(.*)\1$/, "$2").trim();
+  if (env.SPACEHUB_TOKEN === "") delete env.SPACEHUB_TOKEN;
   return env;
 }
 
 const spacehubBin = () => process.env.INSTANTS_SPACEHUB_BIN || "spacehub";
+
+/**
+ * Null when the spacehub CLI acts as a builder; otherwise why not. Reading a
+ * public space works anonymously, so without this a missing or wrong token
+ * only shows up later as autosync dying with "not logged in" over and over.
+ */
+async function authProblem(): Promise<string | null> {
+  if (process.env.INSTANTS_SPACE_SYNC_CMD) return null;
+  const { code, out } = await runCli(spacehubBin(), ["auth", "status"], undefined, 60_000);
+  const builder = /^builder\s+(\S+)/m.exec(out)?.[1];
+  if (code === 0 && builder && builder !== "not") return null;
+  const server = /^server\s+(\S+)/m.exec(out)?.[1] ?? "the hub";
+  const token = cliEnv().SPACEHUB_TOKEN;
+  if (!token) {
+    return `spacehub is not logged in on this server and SPACEHUB_TOKEN is not set in the server's environment. Set it to the output of "spacehub auth token" from a logged-in machine.`;
+  }
+  const detail = out.split("\n").filter((l) => !/^token\b/.test(l)).pop() ?? "";
+  if (/401|verify token/i.test(out)) return `SPACEHUB_TOKEN (${token.length} chars) was rejected by ${server}: ${detail}`;
+  const identity = /^identity\s+(\S+)/m.exec(out)?.[1];
+  return `SPACEHUB_TOKEN (${token.length} chars) is valid on ${server} but is not a builder${identity ? ` (identity ${identity.slice(0, 12)}...)` : ""}. Copy "spacehub auth token" again from a machine where "spacehub auth status" shows your builder.`;
+}
+
+function authFailed(reason: string) {
+  const s = sup();
+  s.status.state = "error";
+  s.status.lastError = reason;
+  pushLog(reason);
+  console.error(`[instants] space sync is off: ${reason}`);
+}
 
 function runCli(cmd: string, args: string[], cwd?: string, timeout = 120_000): Promise<{ code: number; out: string }> {
   return new Promise((resolve) => {
@@ -263,6 +295,10 @@ function startSync() {
       void gitStatus(dir).then((text) => (s.status.gitStatus = text));
       return;
     }
+    if (s.status.log.slice(-5).some((l) => /not logged in/i.test(l))) {
+      void authProblem().then((reason) => authFailed(reason ?? "spacehub is not logged in; check SPACEHUB_TOKEN, then Sync now"));
+      return;
+    }
     // Unexpected exit: restart with backoff (reset after a healthy minute).
     if (Date.now() - s.startedAt > 60_000) s.backoffMs = 1000;
     s.status.state = "error";
@@ -325,6 +361,11 @@ export function connect(project: string) {
     s.status = { state: "connecting", project, dir, log: [], restarts: 0 };
     s.backoffMs = 1000;
     pushLog(`Checking access to ${project}`);
+    const auth = await authProblem();
+    if (auth) {
+      authFailed(auth);
+      throw new Error(auth);
+    }
     const view = await runCli(spacehubBin(), ["project", "view", project], undefined, 60_000);
     if (view.code !== 0) {
       s.status.state = "error";
@@ -392,7 +433,9 @@ export function syncNow() {
     s.status.dir = spaceDirFor(cfg.project);
     s.status.lastError = undefined;
     s.backoffMs = 1000;
-    startSync();
+    const auth = await authProblem();
+    if (auth) authFailed(auth);
+    else startSync();
     return status();
   });
 }
@@ -434,7 +477,9 @@ export async function boot() {
     const dir = spaceDirFor(cfg.project);
     if (fs.existsSync(path.join(dir, ".git"))) {
       s.status = { ...s.status, project: cfg.project, dir };
-      startSync();
+      const auth = await authProblem();
+      if (auth) authFailed(auth);
+      else startSync();
     } else {
       s.status = { ...s.status, state: "error", project: cfg.project, dir, lastError: "the space clone is missing; connect again" };
     }
