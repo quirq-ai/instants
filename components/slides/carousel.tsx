@@ -9,13 +9,15 @@ import type { Slide as SlideData, Source } from "@/lib/research/types";
 import { cn } from "@/lib/utils";
 import { Slide, slideHeading } from "./slide";
 import { SLIDE_LABELS } from "./palette";
-import { downloadSlide } from "./export";
+import { downloadSlide, slideFile } from "./export";
 
 export type SlideCarouselHandle = {
   goTo: (index: number) => void;
   index: () => number;
   /** PNG of the current (or given) slide. */
   download: (filename?: string, index?: number) => Promise<string | undefined>;
+  /** The current (or given) slide as a PNG file. */
+  file: (filename?: string, index?: number) => Promise<File | undefined>;
 };
 
 export type SlideCarouselApi = { index: number; total: number; download: (filename?: string) => Promise<string | undefined> };
@@ -77,7 +79,13 @@ export function SlideCarousel({ slides, accent, title, sources, initialIndex = 0
     return downloadSlide(node, filename ?? `${slugify(title)}-${i + 1}.png`);
   }, [title]);
 
-  useImperativeHandle(ref, () => ({ goTo, index: () => indexRef.current, download }), [goTo, download]);
+  const file = useCallback(async (filename?: string, i = indexRef.current) => {
+    const node = track.current?.children[i] as HTMLElement | undefined;
+    if (!node) return undefined;
+    return slideFile(node, filename ?? `${slugify(title)}-${i + 1}.png`);
+  }, [title]);
+
+  useImperativeHandle(ref, () => ({ goTo, index: () => indexRef.current, download, file }), [goTo, download, file]);
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowRight") goTo(indexRef.current + 1);

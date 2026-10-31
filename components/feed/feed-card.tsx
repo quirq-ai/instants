@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { forwardRef, useState } from "react";
-import { Bookmark, ChevronDown, Clapperboard, FolderOpen, Images, Link2, Loader2, Pin, Play, SquareArrowOutUpRight } from "lucide-react";
+import { forwardRef, useRef, useState } from "react";
+import { Bookmark, ChevronDown, Clapperboard, FolderOpen, Images, Link2, Loader2, Pin, Play, Share, SquareArrowOutUpRight } from "lucide-react";
+import { slideFile } from "@/components/slides/export";
+import { InstagramIcon, XIcon, shareElsewhere, shareToInstagram, shareToX, videoMedia } from "@/components/post/share";
 import { SlideCarousel } from "@/components/slides";
 import type { ResearchRecord, VideoStatus } from "@/lib/research/types";
 import { FeedReel } from "@/components/video/feed-reel";
@@ -22,9 +24,11 @@ export function ActionButton({
   onClick,
   active = false,
   action,
+  className = "",
   children,
 }: {
   action?: string;
+  className?: string;
   label: string;
   onClick?: () => void;
   active?: boolean;
@@ -38,9 +42,9 @@ export function ActionButton({
       aria-pressed={action === "save" || action === "pin" ? active : undefined}
       data-action={action}
       title={label}
-      className={`flex size-9 items-center justify-center rounded-full transition hover:bg-surface-2 ${
+      className={`flex size-9 shrink-0 items-center justify-center rounded-full transition hover:bg-surface-2 ${
         active ? "text-brand" : "text-ink-2"
-      }`}
+      } ${className}`}
     >
       {children}
     </button>
@@ -66,6 +70,11 @@ export const FeedCard = forwardRef<
   const making = isActive(video);
   // Like Instagram, a post with a video opens on the video; slides are one tap away.
   const [playing, setPlaying] = useState(true);
+  const bar = useRef<HTMLDivElement>(null);
+  const coverSlide = async () => {
+    const slide = bar.current?.closest("article")?.querySelector<HTMLElement>("[data-slide]");
+    return slide ? slideFile(slide, `${record.slug}-01.png`) : undefined;
+  };
 
   return (
     <article
@@ -116,17 +125,31 @@ export const FeedCard = forwardRef<
         <SlideCarousel slides={post.slides} accent={post.accent} title={post.title} sources={post.sources} size="feed" />
       )}
 
-      <div className="flex items-center gap-0.5 px-2 pt-2">
+      <div ref={bar} className="flex items-center gap-0.5 px-2 pt-2">
         <ActionButton label={save[0] ? "Unsave" : "Save"} active={save[0]} onClick={save[1]} action="save">
           <Bookmark className="size-[19px]" fill={save[0] ? "currentColor" : "none"} />
         </ActionButton>
         <ActionButton label={pin[0] ? "Unpin" : "Pin"} active={pin[0]} onClick={pin[1]} action="pin">
           <Pin className="size-[19px]" fill={pin[0] ? "currentColor" : "none"} />
         </ActionButton>
-        <ActionButton label="Copy link" onClick={() => copyPostLink(record.slug)}>
+        <ActionButton label="Post to X" onClick={() => shareToX(record)}>
+          <XIcon className="size-[17px]" />
+        </ActionButton>
+        <ActionButton
+          label="Share to Instagram"
+          onClick={() =>
+            shareToInstagram(record, (playing && ready && videoMedia(record.slug, video)) || coverSlide)
+          }
+        >
+          <InstagramIcon className="size-[19px]" />
+        </ActionButton>
+        <ActionButton label="Share" onClick={() => shareElsewhere(record)}>
+          <Share className="size-[19px]" />
+        </ActionButton>
+        <ActionButton label="Copy link" onClick={() => copyPostLink(record.slug)} className="max-sm:hidden">
           <Link2 className="size-[19px]" />
         </ActionButton>
-        <ActionButton label="Open folder" onClick={() => openFolder(record.slug)}>
+        <ActionButton label="Open folder" onClick={() => openFolder(record.slug)} className="max-sm:hidden">
           <FolderOpen className="size-[19px]" />
         </ActionButton>
         {ready && (
@@ -134,17 +157,17 @@ export const FeedCard = forwardRef<
             type="button"
             onClick={() => setPlaying((v) => !v)}
             aria-pressed={playing}
-            className="ml-auto flex h-9 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium text-ink-2 hover:bg-surface-2"
+            className="ml-auto flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 text-[13px] font-medium text-ink-2 hover:bg-surface-2"
           >
             {playing ? <Images className="size-3.5" aria-hidden /> : <Play className="size-3.5" aria-hidden />}
-            {playing ? "Show slides" : "Play video"}
+            <span className="max-sm:sr-only">{playing ? "Show slides" : "Play video"}</span>
           </button>
         )}
         <Link
           href={`/p/${record.slug}`}
-          className={`${ready ? "" : "ml-auto "} flex h-9 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium text-ink-2 hover:bg-surface-2`}
+          className={`${ready ? "" : "ml-auto "} flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 text-[13px] font-medium text-ink-2 hover:bg-surface-2`}
         >
-          Open post <SquareArrowOutUpRight className="size-3.5" />
+          <span className="max-sm:sr-only">Open post</span> <SquareArrowOutUpRight className="size-3.5" />
         </Link>
       </div>
 

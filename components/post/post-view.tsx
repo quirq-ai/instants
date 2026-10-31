@@ -1,7 +1,8 @@
 "use client";
 
 import { Fragment, useEffect, useRef, useState } from "react";
-import { Bookmark, Download, EyeOff, FileText, FolderOpen, Link2, Pin } from "lucide-react";
+import { Bookmark, Download, EyeOff, FileText, FolderOpen, Link2, Pin, Share } from "lucide-react";
+import { InstagramIcon, XIcon, shareElsewhere, shareToInstagram, shareToX, videoMedia } from "./share";
 import { toast } from "sonner";
 import { SlideCarousel, type SlideCarouselHandle } from "@/components/slides";
 import type { ResearchRecord, VideoStatus } from "@/lib/research/types";
@@ -155,6 +156,24 @@ export function PostView({
           </Pill>
           <Pill label={hide[0] ? "Hidden" : "Hide"} active={hide[0]} onClick={hide[1]}>
             <EyeOff className="size-3.5" />
+          </Pill>
+          <Pill label="Post to X" onClick={() => shareToX(record)}>
+            <XIcon className="size-3.5" />
+          </Pill>
+          <Pill
+            label="Instagram"
+            onClick={() =>
+              shareToInstagram(
+                record,
+                (showVideo && videoMedia(record.slug, video.status)) ||
+                  (() => handle.current!.file(`${record.slug}-${String(index + 1).padStart(2, "0")}.png`)),
+              )
+            }
+          >
+            <InstagramIcon className="size-3.5" />
+          </Pill>
+          <Pill label="Share" onClick={() => shareElsewhere(record)}>
+            <Share className="size-3.5" />
           </Pill>
           <Pill label="Copy link" onClick={() => copyPostLink(record.slug)}>
             <Link2 className="size-3.5" />
