@@ -87,6 +87,22 @@ docker run -p 3000:3000 \
   registry.xo.builders/instants-xo-tpbhrsi/app:latest
 ```
 
+## Deploy on Vercel
+
+Vercel has no disk and no background processes, so there the app is a view-only frontend over Spacehub: the public project in `INSTANTS_SPACE` is the database. Posts are read from the hub's raw file URLs (cached for `INSTANTS_REVALIDATE` seconds), slide images and videos redirect to the hub, and saving, notes, generating, videos and Space sync are hidden. New posts made on your Mac or in the Docker image reach the site once they sync to the project.
+
+Import the repo in Vercel (framework Next.js, the defaults in `vercel.json`) and set:
+
+| Variable | Required | What it does |
+|---|---|---|
+| `INSTANTS_SPACE` | yes | Public Spacehub project to read, e.g. `quirq/curie`. |
+| `INSTANTS_REVALIDATE` | no | Seconds before posts are re-read from the hub (default `60`). |
+| `INSTANTS_BRANCH` | no | Branch to read (default `main`). |
+| `SPACEHUB_HTTP` | no | Hub web address (default `https://hub.quirq.dev`, or derived from `SPACEHUB_SERVER`). |
+| `INSTANTS_STORE` | no | `hub` or `local`. Hub mode turns on by itself when `VERCEL` is set. |
+
+The project must be public: the hub ignores tokens on raw file URLs. `SPACEHUB_TOKEN`, `INSTANTS_ADMIN_TOKEN` and `ANTHROPIC_API_KEY` are not used on Vercel. Try hub mode locally with `INSTANTS_STORE=hub npm run build && INSTANTS_STORE=hub npx next start`.
+
 ## How generation auth works
 
 - If `ANTHROPIC_API_KEY` is set, the engine calls the Anthropic API directly from the server.

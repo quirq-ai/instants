@@ -4,6 +4,7 @@
 // production server (next start, the Docker image) never trusts it: there every
 // action needs the unlock cookie matching INSTANTS_ADMIN_TOKEN.
 import { createHash, timingSafeEqual } from "node:crypto";
+import { hubMode } from "@/lib/research/hub";
 
 export const ADMIN_COOKIE = "instants_admin";
 const LOOPBACK = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
@@ -34,6 +35,8 @@ function cookie(request: Request, name: string) {
 
 /** Null when the request is allowed, otherwise a reason to reject it. */
 export function rejectNonLocal(request: Request): string | null {
+  // A hub-backed deploy (Vercel) has nowhere to write: every action is off.
+  if (hubMode()) return "This site reads its posts from Spacehub and is view only.";
   const host = hostname(request.headers.get("host") ?? "");
   // Loopback Host is only trusted by `next dev` (or INSTANTS_TRUST_LOCALHOST=1).
   const trustHost = process.env.NODE_ENV !== "production" || process.env.INSTANTS_TRUST_LOCALHOST === "1";

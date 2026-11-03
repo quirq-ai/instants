@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { CommandPalette, type PaletteItem } from "@/components/search/command-palette";
 import { SyncDot } from "@/components/sources/space-card";
+import { ViewOnlyProvider } from "./view-only";
 
 const NAV = [
   { href: "/", label: "Feed", icon: Home },
@@ -28,6 +29,9 @@ const NAV = [
 ];
 // Mobile tab bar: five slots with Add in the middle.
 const TABS = [NAV[0], NAV[1], { href: "/add", label: "Add", icon: Plus }, NAV[2], NAV[3]];
+// View-only deploys have nothing to add or scan.
+const VIEW_NAV = NAV.filter((n) => n.href !== "/sources");
+const VIEW_TABS = [NAV[0], NAV[1], NAV[2], NAV[3], NAV[4]];
 
 
 function isActive(pathname: string, href: string) {
@@ -83,11 +87,15 @@ export function Logo({ className = "" }: { className?: string }) {
 
 export function AppShell({
   index,
+  viewOnly = false,
   children,
 }: {
   index: PaletteItem[];
+  viewOnly?: boolean;
   children: React.ReactNode;
 }) {
+  const nav = viewOnly ? VIEW_NAV : NAV;
+  const tabs = viewOnly ? VIEW_TABS : TABS;
   const pathname = usePathname();
   const { theme, toggle } = useTheme();
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -123,7 +131,7 @@ export function AppShell({
           <kbd className="rounded border border-line px-1.5 font-mono text-[11px]">⌘K</kbd>
         </button>
         <nav className="mt-5 flex flex-col gap-0.5" aria-label="Main">
-          {NAV.map(({ href, label, icon: Icon }) => {
+          {nav.map(({ href, label, icon: Icon }) => {
             const active = isActive(pathname, href);
             return (
               <Link
@@ -142,17 +150,17 @@ export function AppShell({
             );
           })}
         </nav>
-        <Link
+        {!viewOnly && <Link
           href="/add"
           className="mt-5 flex h-10 items-center justify-center gap-2 rounded-[10px] bg-brand text-sm font-semibold text-brand-ink transition hover:opacity-90"
         >
           <Plus className="size-4" strokeWidth={2.5} />
           Add research
-        </Link>
+        </Link>}
         <div className="mt-auto flex items-center justify-between px-2 text-xs text-faint">
           <span className="flex items-center gap-3">
             {index.length} posts
-            <SyncDot />
+            {!viewOnly && <SyncDot />}
           </span>
           <button
             type="button"
@@ -184,13 +192,15 @@ export function AppShell({
           >
             <BarChart3 className="size-5" />
           </Link>
-          <Link
-            href="/sources"
-            className="flex size-10 items-center justify-center rounded-full hover:bg-surface-2"
-            aria-label="Sources"
-          >
-            <FolderOpen className="size-5" />
-          </Link>
+          {!viewOnly && (
+            <Link
+              href="/sources"
+              className="flex size-10 items-center justify-center rounded-full hover:bg-surface-2"
+              aria-label="Sources"
+            >
+              <FolderOpen className="size-5" />
+            </Link>
+          )}
           <button
             type="button"
             onClick={toggle}
@@ -202,14 +212,14 @@ export function AppShell({
         </div>
       </header>
 
-      <main className="pb-24 md:pb-10 md:pl-[var(--sidebar-w)]">{children}</main>
+      <main className="pb-24 md:pb-10 md:pl-[var(--sidebar-w)]"><ViewOnlyProvider value={viewOnly}>{children}</ViewOnlyProvider></main>
 
       {/* Mobile tab bar */}
       <nav
         className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-line bg-bg/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
         aria-label="Main"
       >
-        {TABS.map(({ href, label, icon: Icon }) => {
+        {tabs.map(({ href, label, icon: Icon }) => {
           const active = isActive(pathname, href);
           const add = href === "/add";
           return (
@@ -234,7 +244,7 @@ export function AppShell({
         })}
       </nav>
 
-      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} items={index} />
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} items={index} viewOnly={viewOnly} />
     </div>
   );
 }

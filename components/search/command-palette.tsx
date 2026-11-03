@@ -35,11 +35,14 @@ export function CommandPalette({
   open,
   onOpenChange,
   items,
+  viewOnly = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   items: PaletteItem[];
+  viewOnly?: boolean;
 }) {
+  const goTo = viewOnly ? GO_TO.filter((g) => g.href !== "/sources" && g.href !== "/add") : GO_TO;
   const router = useRouter();
   const topics = [...new Map(items.map((item) => [item.topic, item])).keys()].sort();
 
@@ -97,7 +100,7 @@ export function CommandPalette({
           </CommandGroup>
         )}
         <CommandGroup heading="Go to">
-          {GO_TO.map(({ href, label, icon: Icon }) => (
+          {goTo.map(({ href, label, icon: Icon }) => (
             <CommandItem key={href} value={`go ${label}`} onSelect={() => go(href)}>
               <Icon className="text-muted-foreground" />
               {label}

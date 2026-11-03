@@ -10,6 +10,7 @@ import { Notes } from "@/components/post/notes";
 import { PostCard } from "@/components/library/post-card";
 import { gitSpan, researchLabel } from "@/components/post/meta";
 import { getActivity, getRecord, getRecords, getVideoStatus, relatedTo } from "@/lib/research/library";
+import { hubMode } from "@/lib/research/hub";
 import { bytes, dateRange, topicSlug } from "@/lib/research/format";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -145,9 +146,11 @@ export default async function PostPage({ params }: Props) {
                   </p>
                 </Section>
               )}
-              <Section title="Private notes">
-                <Notes slug={slug} initial={activity.notes[slug] ?? []} />
-              </Section>
+              {!hubMode() && (
+                <Section title="Private notes">
+                  <Notes slug={slug} initial={activity.notes[slug] ?? []} />
+                </Section>
+              )}
               {post.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
                   {post.tags.map((tag, i) => (

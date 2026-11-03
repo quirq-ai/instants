@@ -5,10 +5,13 @@ import path from "node:path";
 import { cache } from "react";
 import type { Activity, ResearchRecord, SourceStatus, VideoStatus } from "./types";
 import { ensureStore, postsDir, videosDir, VIDEOS_WORK } from "./store";
+import { hubMode, hubRecord, hubRecords, hubVideoStatus, hubVideoStatuses } from "./hub";
 
 export const CACHE_DIR = path.join(process.cwd(), ".research-cache");
 const ACTIVITY_FILE = path.join(CACHE_DIR, "activity.json");
 const SOURCES_FILE = path.join(CACHE_DIR, "sources.json");
+
+export const READ_ONLY = "This site reads its posts from Spacehub and is view only.";
 
 const EMPTY_ACTIVITY: Activity = { saved: [], pinned: [], hidden: [], read: {}, notes: {} };
 
@@ -21,6 +24,7 @@ const store = globalThis as unknown as { __instantsRecords?: RecordCache; __inst
  * or regenerated post is always picked up.
  */
 async function loadRecords(): Promise<ResearchRecord[]> {
+  if (hubMode()) return hubRecords();
   await ensureStore().catch(() => {});
   const POSTS_DIR = postsDir();
   const names = (await fs.readdir(POSTS_DIR).catch(() => [] as string[])).filter((file) => file.endsWith(".json"));
@@ -57,6 +61,7 @@ export const getRecords: () => Promise<ResearchRecord[]> = cache(loadRecords);
 
 export async function getRecord(slug: string): Promise<ResearchRecord | null> {
   if (!/^[a-z0-9-]+$/.test(slug)) return null;
+  if (hubMode()) return hubRecord(slug);
   await ensureStore().catch(() => {});
   return fs
     .readFile(path.join(postsDir(), `${slug}.json`), "utf8")
@@ -95,11 +100,13 @@ async function readActivity(): Promise<Activity> {
 }
 
 export async function getActivity(): Promise<Activity> {
+  if (hubMode()) return structuredClone(EMPTY_ACTIVITY);
   return readActivity().catch(() => structuredClone(EMPTY_ACTIVITY));
 }
 
 /** Serialized read-modify-write of the activity file, shared across bundles and hot reloads. */
 export function updateActivity(mutate: (activity: Activity) => void): Promise<Activity> {
+  if (hubMode()) return Promise.reject(new Error(READ_ONLY));
   const prev = store.__instantsActivityLock ?? Promise.resolve();
   const next = prev.then(async () => {
     const activity = await readActivity();
@@ -116,6 +123,7 @@ export function updateActivity(mutate: (activity: Activity) => void): Promise<Ac
 }
 
 export async function getSourceStatus(): Promise<SourceStatus[]> {
+  if (hubMode()) return [];
   return fs
     .readFile(SOURCES_FILE, "utf8")
     .then((text) => JSON.parse(text) as SourceStatus[])
@@ -154,6 +162,7 @@ const readStatus = (file: string) =>
  */
 export async function getVideoStatus(slug: string): Promise<VideoStatus | null> {
   if (!/^[a-z0-9-]+$/.test(slug)) return null;
+  if (hubMode()) return hubVideoStatus(slug);
   const [local, shared] = await Promise.all([
     readStatus(path.join(VIDEOS_CACHE, slug, "status.json")),
     readStatus(path.join(videosDir(), `${slug}.status.json`)),
@@ -163,6 +172,7 @@ export async function getVideoStatus(slug: string): Promise<VideoStatus | null> 
 }
 
 export async function getVideoStatuses(): Promise<Record<string, VideoStatus>> {
+  if (hubMode()) return hubVideoStatuses();
   const local = (await fs.readdir(VIDEOS_CACHE).catch(() => [] as string[])).filter((s) => /^[a-z0-9-]+$/.test(s));
   const shared = (await fs.readdir(videosDir()).catch(() => [] as string[]))
     .filter((f) => f.endsWith(".status.json"))

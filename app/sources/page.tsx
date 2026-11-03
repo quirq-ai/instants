@@ -1,12 +1,16 @@
 import { Page, PageHeader } from "@/components/shell/page-header";
 import { SourcesView } from "@/components/sources/sources-view";
 import { SpaceCard } from "@/components/sources/space-card";
+import { redirect } from "next/navigation";
+import { hubMode } from "@/lib/research/hub";
 import { getRecords, getSourceStatus } from "@/lib/research/library";
 
 export const metadata = { title: "Sources" };
 export const dynamic = "force-dynamic";
 
 export default async function SourcesPage() {
+  // A hub-backed deploy (Vercel) is view only.
+  if (hubMode()) redirect("/");
   const [sources, records] = await Promise.all([getSourceStatus(), getRecords()]);
   const titles = Object.fromEntries(records.map((r) => [r.slug, r.post.title]));
   return (

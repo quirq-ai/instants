@@ -51,7 +51,7 @@ export async function startVideo(
  * Video status for one post. Polls GET /api/video every 3s while this post's
  * job is running and the page is visible. Other posts' jobs run alongside.
  */
-export function useVideo(slug: string, initial: VideoStatus | null) {
+export function useVideo(slug: string, initial: VideoStatus | null, viewOnly = false) {
   const router = useRouter();
   const [status, setStatus] = useState<VideoStatus | null>(initial);
   const [running, setRunning] = useState<string[]>(isActive(initial) ? [slug] : []);
@@ -81,8 +81,8 @@ export function useVideo(slug: string, initial: VideoStatus | null) {
 
   const polling = isActive(status);
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    if (!viewOnly) void refresh();
+  }, [refresh, viewOnly]);
   useEffect(() => {
     if (!polling) return;
     const tick = () => {

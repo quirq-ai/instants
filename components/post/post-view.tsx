@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useRef, useState } from "react";
 import { Bookmark, Download, EyeOff, FileText, FolderOpen, Link2, Pin, Share } from "lucide-react";
+import { useViewOnly } from "@/components/shell/view-only";
 import { InstagramIcon, XIcon, shareElsewhere, shareToInstagram, shareToX, videoMedia } from "./share";
 import { toast } from "sonner";
 import { SlideCarousel, type SlideCarouselHandle } from "@/components/slides";
@@ -80,7 +81,8 @@ export function PostView({
     on: "Hidden from feed and library",
     off: "Visible again",
   });
-  const video = useVideo(record.slug, initialVideo);
+  const viewOnly = useViewOnly();
+  const video = useVideo(record.slug, initialVideo, viewOnly);
   const hasVideo = video.status?.state === "ready" && Boolean(video.status.url);
   const [view, setView] = useState<"video" | "slides">("video");
   const showVideo = hasVideo && view === "video";
@@ -88,8 +90,8 @@ export function PostView({
   const numbers = keyNumbers(post.slides);
 
   useEffect(() => {
-    sendActivity({ action: "read", slug: record.slug }).catch(() => {});
-  }, [record.slug]);
+    if (!viewOnly) sendActivity({ action: "read", slug: record.slug }).catch(() => {});
+  }, [record.slug, viewOnly]);
 
   function goTo(slide: number) {
     setView("slides");
@@ -148,6 +150,8 @@ export function PostView({
       <div className="flex min-w-0 flex-col gap-6">
         <Fragment key="header">{header}</Fragment>
         <div className="flex flex-wrap items-center gap-2">
+          {!viewOnly && (
+            <>
           <Pill label={save[0] ? "Saved" : "Save"} active={save[0]} onClick={save[1]}>
             <Bookmark className="size-3.5" fill={save[0] ? "currentColor" : "none"} />
           </Pill>
@@ -157,6 +161,8 @@ export function PostView({
           <Pill label={hide[0] ? "Hidden" : "Hide"} active={hide[0]} onClick={hide[1]}>
             <EyeOff className="size-3.5" />
           </Pill>
+            </>
+          )}
           <Pill label="Post to X" onClick={() => shareToX(record)}>
             <XIcon className="size-3.5" />
           </Pill>
@@ -178,19 +184,23 @@ export function PostView({
           <Pill label="Copy link" onClick={() => copyPostLink(record.slug)}>
             <Link2 className="size-3.5" />
           </Pill>
-          <Pill label="Open folder" onClick={() => openFolder(record.slug)}>
-            <FolderOpen className="size-3.5" />
-          </Pill>
+          {!viewOnly && (
+            <Pill label="Open folder" onClick={() => openFolder(record.slug)}>
+              <FolderOpen className="size-3.5" />
+            </Pill>
+          )}
           <Pill label="Download slide" onClick={download}>
             <Download className="size-3.5" />
           </Pill>
-          <RegenerateButton slug={record.slug} />
+          {!viewOnly && <RegenerateButton slug={record.slug} />}
         </div>
         <Fragment key="meta">{meta}</Fragment>
 
-        <Section title="Video">
-          <VideoPanel slug={record.slug} video={video} />
-        </Section>
+        {!viewOnly && (
+          <Section title="Video">
+            <VideoPanel slug={record.slug} video={video} />
+          </Section>
+        )}
 
         {numbers.length > 0 && (
           <Section title="Key numbers">

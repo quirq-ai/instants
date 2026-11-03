@@ -7,6 +7,7 @@ import path from "node:path";
 import { NextResponse, type NextRequest } from "next/server";
 import { topicSlug } from "@/lib/research/format";
 import { postsDir } from "@/lib/research/store";
+import { hubMode, hubRecord } from "@/lib/research/hub";
 import { TOPICS } from "@/lib/research/types";
 
 const TOPIC_SLUGS = new Set(TOPICS.map(topicSlug));
@@ -14,6 +15,7 @@ const MISSING = "/_instants-not-found";
 
 async function postExists(slug: string) {
   if (!/^[a-z0-9-]+$/.test(slug)) return false;
+  if (hubMode()) return Boolean(await hubRecord(slug).catch(() => null));
   return access(path.join(postsDir(), `${slug}.json`)).then(
     () => true,
     () => false,

@@ -5,6 +5,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { ensureStore, resolveInStore, storeDir } from "@/lib/research/store";
+import { hubMode, rawUrl } from "@/lib/research/hub";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,6 +29,14 @@ async function serve(request: Request, parts: string[], head: boolean) {
   if (!parts.every((p) => SEGMENT.test(p) && p !== "." && p !== "..")) return notFound();
   const type = TYPES[path.extname(parts[parts.length - 1]).toLowerCase()];
   if (!type) return notFound();
+  // On a hub-backed deploy the files live on Spacehub; send the browser there
+  // (videos are far over a function's response limit, and the hub serves ranges).
+  if (hubMode()) {
+    return new Response(null, {
+      status: 307,
+      headers: { location: rawUrl(parts.join("/")), "cache-control": "public, max-age=300" },
+    });
+  }
   await ensureStore().catch(() => {});
   const root = storeDir();
   const file = resolveInStore(parts.join("/"), root);

@@ -1,9 +1,13 @@
+import { redirect } from "next/navigation";
 import { Page, PageHeader } from "@/components/shell/page-header";
+import { hubMode } from "@/lib/research/hub";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Unlock" };
 
 export default async function UnlockPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  // A hub-backed deploy (Vercel) is view only.
+  if (hubMode()) redirect("/");
   const { error } = await searchParams;
   const enabled = Boolean(process.env.INSTANTS_ADMIN_TOKEN);
   return (

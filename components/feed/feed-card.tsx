@@ -8,6 +8,7 @@ import { InstagramIcon, XIcon, shareElsewhere, shareToInstagram, shareToX, video
 import { SlideCarousel } from "@/components/slides";
 import type { ResearchRecord, VideoStatus } from "@/lib/research/types";
 import { FeedReel } from "@/components/video/feed-reel";
+import { useViewOnly } from "@/components/shell/view-only";
 import { isActive } from "@/components/video/use-video";
 import { copyPostLink, openFolder, useActivityFlag } from "@/components/post/activity-client";
 import { gitSpan, researchLabel } from "@/components/post/meta";
@@ -64,6 +65,7 @@ export const FeedCard = forwardRef<
 >(function FeedCard({ record, saved, pinned, unread, active, video = null }, ref) {
   const { post } = record;
   const { save, pin } = useCardFlags(record.slug, saved, pinned);
+  const viewOnly = useViewOnly();
   const [expanded, setExpanded] = useState(false);
   const span = gitSpan(record);
   const ready = video?.state === "ready" && Boolean(video.url);
@@ -126,12 +128,16 @@ export const FeedCard = forwardRef<
       )}
 
       <div ref={bar} className="flex items-center gap-0.5 px-2 pt-2">
+        {!viewOnly && (
+          <>
         <ActionButton label={save[0] ? "Unsave" : "Save"} active={save[0]} onClick={save[1]} action="save">
           <Bookmark className="size-[19px]" fill={save[0] ? "currentColor" : "none"} />
         </ActionButton>
         <ActionButton label={pin[0] ? "Unpin" : "Pin"} active={pin[0]} onClick={pin[1]} action="pin">
           <Pin className="size-[19px]" fill={pin[0] ? "currentColor" : "none"} />
         </ActionButton>
+          </>
+        )}
         <ActionButton label="Post to X" onClick={() => shareToX(record)}>
           <XIcon className="size-[17px]" />
         </ActionButton>
@@ -149,9 +155,11 @@ export const FeedCard = forwardRef<
         <ActionButton label="Copy link" onClick={() => copyPostLink(record.slug)} className="max-sm:hidden">
           <Link2 className="size-[19px]" />
         </ActionButton>
-        <ActionButton label="Open folder" onClick={() => openFolder(record.slug)} className="max-sm:hidden">
-          <FolderOpen className="size-[19px]" />
-        </ActionButton>
+        {!viewOnly && (
+          <ActionButton label="Open folder" onClick={() => openFolder(record.slug)} className="max-sm:hidden">
+            <FolderOpen className="size-[19px]" />
+          </ActionButton>
+        )}
         {ready && (
           <button
             type="button"

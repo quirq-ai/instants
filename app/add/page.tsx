@@ -3,6 +3,8 @@ import { FolderOpen } from "lucide-react";
 import { Page, PageHeader } from "@/components/shell/page-header";
 import { AddFlow } from "@/components/add/add-flow";
 import { CreatedPreview } from "@/components/add/created-preview";
+import { redirect } from "next/navigation";
+import { hubMode } from "@/lib/research/hub";
 import { getRecord } from "@/lib/research/library";
 
 export const metadata = { title: "Add research" };
@@ -12,6 +14,8 @@ export default async function AddPage({
 }: {
   searchParams: Promise<{ created?: string; video?: string }>;
 }) {
+  // A hub-backed deploy (Vercel) is view only.
+  if (hubMode()) redirect("/");
   const { created, video } = await searchParams;
   const record = created ? await getRecord(created) : null;
 

@@ -3,6 +3,7 @@ import { Inter, Instrument_Serif, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { AppShell } from "@/components/shell/app-shell";
 import { getRecords } from "@/lib/research/library";
+import { hubMode } from "@/lib/research/hub";
 import "./globals.css";
 
 // Self-hosted at build time, so the browser never fetches from Google.
@@ -41,7 +42,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
       </head>
       <body>
-        <AppShell index={index}>{children}</AppShell>
+        <AppShell index={index} viewOnly={hubMode()}>{children}</AppShell>
         <Toaster position="bottom-center" />
       </body>
     </html>

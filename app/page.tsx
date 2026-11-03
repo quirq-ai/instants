@@ -5,6 +5,7 @@ import { FeedList } from "@/components/feed/feed-list";
 import { FEED_TABS, orderFeed, spreadSameTitles, parseTab, type FeedTab } from "@/components/feed/order";
 import { getActivity, getRecords, getVideoStatuses } from "@/lib/research/library";
 import { topicSlug } from "@/lib/research/format";
+import { hubMode } from "@/lib/research/hub";
 
 type Media = "all" | "video";
 
@@ -84,7 +85,9 @@ export default async function FeedPage({
     (r) => media === "all" || hasVideo(r.slug),
   );
   const records = tab === "saved" ? orderFeed(inTopic, activity, tab) : spreadSameTitles(orderFeed(inTopic, activity, tab));
-  const unread = visible.filter((r) => !activity.read[r.slug]).length;
+  const viewOnly = hubMode();
+  // View-only deploys keep no read or saved state.
+  const unread = viewOnly ? 0 : visible.filter((r) => !activity.read[r.slug]).length;
 
   return (
     <Page>
@@ -96,7 +99,7 @@ export default async function FeedPage({
             : "Your research, as posts."
         }
         actions={
-          <Link
+          !viewOnly && <Link
             href="/add"
             className="hidden h-9 items-center gap-1.5 rounded-[10px] bg-brand px-3.5 text-sm font-semibold text-brand-ink transition hover:opacity-90 sm:flex"
           >
@@ -107,7 +110,7 @@ export default async function FeedPage({
 
       <div className="flex items-end justify-between gap-3 border-b border-line">
       <nav aria-label="Feed views" className="flex gap-1">
-        {FEED_TABS.map(({ id, label }) => {
+        {FEED_TABS.filter((t) => !viewOnly || t.id !== "saved").map(({ id, label }) => {
           const current = id === tab;
           return (
             <Link
