@@ -76,6 +76,7 @@ export default async function PostPage({ params }: Props) {
       <div className="pt-4">
         <PostView
           record={record}
+          liked={activity.liked.includes(slug)}
           saved={activity.saved.includes(slug)}
           pinned={activity.pinned.includes(slug)}
           hidden={hiddenSet.has(slug)}

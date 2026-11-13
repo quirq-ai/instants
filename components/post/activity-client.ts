@@ -1,6 +1,6 @@
 "use client";
 
-// Client helpers for per-post activity (save, pin, hide, notes) and local actions.
+// Client helpers for per-post activity (save, pin, like, hide, notes) and local actions.
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -11,6 +11,8 @@ export type ActivityAction =
   | "unsave"
   | "pin"
   | "unpin"
+  | "like"
+  | "unlike"
   | "hide"
   | "unhide"
   | "read"

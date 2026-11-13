@@ -78,6 +78,44 @@ export function storeDir() {
 }
 
 export const postsDir = () => path.join(storeDir(), "posts");
+
+/**
+ * Shelves: the folder a post's JSON sits in. posts/ is the default, liked/
+ * holds liked posts and hidden/ holds hidden ones, so both travel with the
+ * library. A post is on exactly one shelf.
+ */
+export const SHELVES = ["posts", "liked", "hidden"];
+const SLUG_RE = /^[a-z0-9-]+$/;
+
+/** Where a post's record is, or null. If a sync left copies on two shelves, hidden wins, then liked. */
+export function findPost(slug, root = storeDir()) {
+  if (typeof slug !== "string" || !SLUG_RE.test(slug)) return null;
+  for (const shelf of ["hidden", "liked", "posts"]) {
+    const file = path.join(/*turbopackIgnore: true*/ root, shelf, `${slug}.json`);
+    if (fs.existsSync(file)) return { shelf, file };
+  }
+  return null;
+}
+
+/** The file to read or write a post at: where it sits now, else posts/. */
+export const postFile = (slug) => findPost(slug)?.file ?? path.join(postsDir(), `${slug}.json`);
+
+/** Move a post's record to a shelf (a rename, so autosync records it as a move). */
+export async function movePost(slug, shelf) {
+  if (!SHELVES.includes(shelf)) throw new Error(`Unknown shelf "${shelf}".`);
+  const root = storeDir();
+  const found = findPost(slug, root);
+  if (!found) throw new Error(`No post named "${slug}".`);
+  const to = path.join(/*turbopackIgnore: true*/ root, shelf, `${slug}.json`);
+  if (found.file !== to) {
+    await fsp.mkdir(path.dirname(to), { recursive: true });
+    await fsp.rename(found.file, to);
+  }
+  for (const other of SHELVES) {
+    if (other !== shelf) await fsp.rm(path.join(/*turbopackIgnore: true*/ root, other, `${slug}.json`), { force: true });
+  }
+  return shelf;
+}
 export const mediaDir = () => path.join(storeDir(), "media");
 export const videosDir = () => path.join(storeDir(), "videos");
 export const sourcesDir = () => path.join(storeDir(), "sources");
@@ -108,6 +146,8 @@ Instants writes this folder. As a Spacehub project it syncs both ways with every
 
 \`\`\`
 posts/<slug>.json            one post: slides, numbered sources, topic, accent, dates
+liked/<slug>.json            a post you liked (moved here from posts/)
+hidden/<slug>.json           a post you hid (moved here from posts/)
 media/<slug>/*               images used by a post's slides
 videos/<slug>.mp4, .jpg      rendered video and poster
 videos/<slug>.status.json    render result (duration, aspect, finishedAt)
@@ -115,7 +155,7 @@ sources/<slug>/*             uploaded sources, with .upload.json; no post yet me
 instants.json                library manifest
 \`\`\`
 
-Saves, pins, notes and read state stay on each machine and are never written here.
+Liking or hiding a post in Instants moves its file between \`posts/\`, \`liked/\` and \`hidden/\`, so both lists sync everywhere. Moving a file by hand does the same thing. Saves, pins, notes and read state stay on each machine and are never written here.
 
 ## Connect
 
@@ -127,7 +167,7 @@ Saves, pins, notes and read state stay on each machine and are never written her
 
 Drop files into \`sources/<slug>/\` from any clone (notes, CSV, JSON, images, code). Instants lists them as pending and, with Auto-generate on, turns each into a post.
 
-Do not edit \`posts/*.json\` by hand unless you keep the schema; Instants validates records on read and skips broken ones.
+Do not edit the post JSON files by hand unless you keep the schema; Instants validates records on read and skips broken ones.
 `;
 
 /** Make the layout, manifest and README exist in a store (missing pieces only). */

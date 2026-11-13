@@ -6,7 +6,7 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { ensureStore, mediaDir, postsDir, videosDir, VIDEOS_WORK } from "./store.mjs";
+import { ensureStore, mediaDir, postFile, videosDir, VIDEOS_WORK } from "./store.mjs";
 
 export const VIDEOS_CACHE = VIDEOS_WORK;
 
@@ -380,7 +380,7 @@ export async function runVideo({ slug, aspect = "9:16", length = 45, sound = "fu
       await waitTurn();
       await t.set({ stage: "Starting" });
     }
-    const record = await fs.readFile(path.join(postsDir(), `${slug}.json`), "utf8").then(JSON.parse).catch(() => null);
+    const record = await fs.readFile(postFile(slug), "utf8").then(JSON.parse).catch(() => null);
     if (!record?.post) throw new Error(`No post named "${slug}".`);
     t.log("Preparing inputs", "Preparing");
     const assets = await prepareInput(record, dir);

@@ -5,15 +5,17 @@ import { useRouter } from "next/navigation";
 import type { ResearchRecord, VideoStatus } from "@/lib/research/types";
 import { FeedCard } from "./feed-card";
 
-/** The feed column with j/k/s/o keyboard navigation. */
+/** The feed column with j/k/l/s/o keyboard navigation. */
 export function FeedList({
   records,
+  liked,
   saved,
   pinned,
   read,
   videos = {},
 }: {
   records: ResearchRecord[];
+  liked: string[];
   saved: string[];
   pinned: string[];
   read: string[];
@@ -22,6 +24,7 @@ export function FeedList({
   const router = useRouter();
   const refs = useRef<(HTMLElement | null)[]>([]);
   const [active, setActive] = useState(-1);
+  const likedSet = new Set(liked);
   const savedSet = new Set(saved);
   const pinnedSet = new Set(pinned);
   const readSet = new Set(read);
@@ -46,6 +49,9 @@ export function FeedList({
       } else if (key === "k") {
         event.preventDefault();
         focus(Math.max(0, current - 1));
+      } else if (current >= 0 && key === "l") {
+        event.preventDefault();
+        refs.current[current]?.querySelector<HTMLButtonElement>('[data-action="like"]')?.click();
       } else if (current >= 0 && key === "s") {
         event.preventDefault();
         refs.current[current]?.querySelector<HTMLButtonElement>('[data-action="save"]')?.click();
@@ -67,6 +73,7 @@ export function FeedList({
             refs.current[index] = el;
           }}
           record={record}
+          liked={likedSet.has(record.slug)}
           saved={savedSet.has(record.slug)}
           pinned={pinnedSet.has(record.slug)}
           unread={!readSet.has(record.slug)}
@@ -77,6 +84,7 @@ export function FeedList({
       <p className="hidden pb-4 text-center text-xs text-faint md:block">
         <kbd className="rounded border border-line px-1 font-mono">j</kbd> /{" "}
         <kbd className="rounded border border-line px-1 font-mono">k</kbd> move ·{" "}
+        <kbd className="rounded border border-line px-1 font-mono">l</kbd> like ·{" "}
         <kbd className="rounded border border-line px-1 font-mono">s</kbd> save ·{" "}
         <kbd className="rounded border border-line px-1 font-mono">o</kbd> open
       </p>

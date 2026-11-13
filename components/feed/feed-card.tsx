@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { forwardRef, useRef, useState } from "react";
-import { Bookmark, ChevronDown, Clapperboard, FolderOpen, Images, Link2, Loader2, Pin, Play, Share, SquareArrowOutUpRight } from "lucide-react";
+import { Bookmark, ChevronDown, Clapperboard, FolderOpen, Heart, Images, Link2, Loader2, Pin, Play, Share, SquareArrowOutUpRight } from "lucide-react";
 import { slideFile } from "@/components/slides/export";
 import { InstagramIcon, XIcon, shareElsewhere, shareToInstagram, shareToX, videoMedia } from "@/components/post/share";
 import { SlideCarousel } from "@/components/slides";
@@ -14,10 +14,11 @@ import { copyPostLink, openFolder, useActivityFlag } from "@/components/post/act
 import { gitSpan, researchLabel } from "@/components/post/meta";
 import { plainExcerpt } from "@/components/post/markdown";
 
-export function useCardFlags(slug: string, saved: boolean, pinned: boolean) {
+export function useCardFlags(slug: string, saved: boolean, pinned: boolean, liked: boolean) {
+  const like = useActivityFlag(slug, liked, "like", "unlike", { on: "Liked", off: "Removed from liked" });
   const save = useActivityFlag(slug, saved, "save", "unsave", { on: "Saved", off: "Removed from saved" });
   const pin = useActivityFlag(slug, pinned, "pin", "unpin", { on: "Pinned to the top of Latest", off: "Unpinned" });
-  return { save, pin };
+  return { like, save, pin };
 }
 
 export function ActionButton({
@@ -40,7 +41,7 @@ export function ActionButton({
       type="button"
       onClick={onClick}
       aria-label={label}
-      aria-pressed={action === "save" || action === "pin" ? active : undefined}
+      aria-pressed={action === "like" || action === "save" || action === "pin" ? active : undefined}
       data-action={action}
       title={label}
       className={`flex size-9 shrink-0 items-center justify-center rounded-full transition hover:bg-surface-2 ${
@@ -56,15 +57,16 @@ export const FeedCard = forwardRef<
   HTMLElement,
   {
     record: ResearchRecord;
+    liked: boolean;
     saved: boolean;
     pinned: boolean;
     unread: boolean;
     active: boolean;
     video?: VideoStatus | null;
   }
->(function FeedCard({ record, saved, pinned, unread, active, video = null }, ref) {
+>(function FeedCard({ record, liked, saved, pinned, unread, active, video = null }, ref) {
   const { post } = record;
-  const { save, pin } = useCardFlags(record.slug, saved, pinned);
+  const { like, save, pin } = useCardFlags(record.slug, saved, pinned, liked);
   const viewOnly = useViewOnly();
   const [expanded, setExpanded] = useState(false);
   const span = gitSpan(record);
@@ -130,6 +132,9 @@ export const FeedCard = forwardRef<
       <div ref={bar} className="flex items-center gap-0.5 px-2 pt-2">
         {!viewOnly && (
           <>
+        <ActionButton label={like[0] ? "Unlike" : "Like"} active={like[0]} onClick={like[1]} action="like">
+          <Heart className="size-[19px]" fill={like[0] ? "currentColor" : "none"} />
+        </ActionButton>
         <ActionButton label={save[0] ? "Unsave" : "Save"} active={save[0]} onClick={save[1]} action="save">
           <Bookmark className="size-[19px]" fill={save[0] ? "currentColor" : "none"} />
         </ActionButton>

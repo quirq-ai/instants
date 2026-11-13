@@ -1,11 +1,12 @@
-// Server-only data layer: research records live as JSON files in the content
-// store's posts/ (lib/research/store.ts), per-user activity in .research-cache/activity.json.
+// Server-only data layer: research records live as JSON files on the content
+// store's shelves, posts/, liked/ and hidden/ (lib/research/store.ts), per-user
+// activity in .research-cache/activity.json.
 import fs from "node:fs/promises";
 import path from "node:path";
 import { cache } from "react";
 import type { Activity, ResearchRecord, SourceStatus, VideoStatus } from "./types";
-import { ensureStore, postsDir, videosDir, VIDEOS_WORK } from "./store";
-import { hubMode, hubRecord, hubRecords, hubVideoStatus, hubVideoStatuses } from "./hub";
+import { ensureStore, findPost, movePost, SHELVES, storeDir, videosDir, VIDEOS_WORK, type Shelf } from "./store";
+import { hubLibrary, hubMode, hubRecord, hubVideoStatus, hubVideoStatuses } from "./hub";
 
 export const CACHE_DIR = path.join(process.cwd(), ".research-cache");
 const ACTIVITY_FILE = path.join(CACHE_DIR, "activity.json");
@@ -13,58 +14,84 @@ const SOURCES_FILE = path.join(CACHE_DIR, "sources.json");
 
 export const READ_ONLY = "This site reads its posts from Spacehub and is view only.";
 
-const EMPTY_ACTIVITY: Activity = { saved: [], pinned: [], hidden: [], read: {}, notes: {} };
+const EMPTY_ACTIVITY: Activity = { saved: [], pinned: [], liked: [], hidden: [], read: {}, notes: {} };
 
-type RecordCache = { key: string; records: ResearchRecord[]; files: Map<string, { mtime: number; record: ResearchRecord | null }> };
-const store = globalThis as unknown as { __instantsRecords?: RecordCache; __instantsActivityLock?: Promise<unknown>; __instantsTmp?: number };
+type Library = { records: ResearchRecord[]; liked: string[]; hidden: string[] };
+type RecordCache = Library & { key: string; files: Map<string, { mtime: number; record: ResearchRecord | null }> };
+const store = globalThis as unknown as {
+  __instantsRecords?: RecordCache;
+  __instantsActivityLock?: Promise<unknown>;
+  __instantsTmp?: number;
+  __instantsHiddenMoved?: Promise<void>;
+};
+
+// When a sync leaves one post on two shelves, hidden wins, then liked (same order as findPost).
+const SHELF_RANK: Record<Shelf, number> = { hidden: 0, liked: 1, posts: 2 };
 
 /**
- * Load every record, reusing parsed files whose mtime has not changed. The
- * engine writes posts by atomic rename, which bumps the file mtime, so a new
- * or regenerated post is always picked up.
+ * Load every record from every shelf, reusing parsed files whose mtime has
+ * not changed. The engine writes posts by atomic rename, which bumps the file
+ * mtime, so a new or regenerated post is always picked up.
  */
-async function loadRecords(): Promise<ResearchRecord[]> {
-  if (hubMode()) return hubRecords();
+async function loadLibrary(): Promise<Library> {
+  if (hubMode()) return { ...(await hubLibrary()), hidden: [] };
   await ensureStore().catch(() => {});
-  const POSTS_DIR = postsDir();
-  const names = (await fs.readdir(POSTS_DIR).catch(() => [] as string[])).filter((file) => file.endsWith(".json"));
-  const stats = await Promise.all(
-    names.map((name) => fs.stat(path.join(POSTS_DIR, name)).then((st) => [name, st.mtimeMs] as const).catch(() => null)),
+  const root = storeDir();
+  const listed = await Promise.all(
+    SHELVES.map(async (shelf) => {
+      const names = (await fs.readdir(path.join(root, shelf)).catch(() => [] as string[])).filter((file) => file.endsWith(".json"));
+      return Promise.all(
+        names.map((name) =>
+          fs.stat(path.join(root, shelf, name)).then((st) => ({ shelf, name, id: `${shelf}/${name}`, mtime: st.mtimeMs })).catch(() => null),
+        ),
+      );
+    }),
   );
-  const present = stats.filter((s): s is readonly [string, number] => Boolean(s));
-  const key = POSTS_DIR + "|" + present.map(([name, mtime]) => `${name}:${mtime}`).join("|");
+  const present = listed.flat().filter((s): s is NonNullable<typeof s> => Boolean(s));
+  const key = root + "|" + present.map(({ id, mtime }) => `${id}:${mtime}`).join("|");
   const prev = store.__instantsRecords;
-  if (prev && prev.key === key) return prev.records;
+  if (prev && prev.key === key) return prev;
 
   const files = new Map<string, { mtime: number; record: ResearchRecord | null }>();
   await Promise.all(
-    present.map(async ([name, mtime]) => {
-      const hit = prev?.key.startsWith(`${POSTS_DIR}|`) ? prev.files.get(name) : undefined;
-      if (hit && hit.mtime === mtime) return void files.set(name, hit);
+    present.map(async ({ id, mtime }) => {
+      const hit = prev?.key.startsWith(`${root}|`) ? prev.files.get(id) : undefined;
+      if (hit && hit.mtime === mtime) return void files.set(id, hit);
       const record = await fs
-        .readFile(path.join(POSTS_DIR, name), "utf8")
+        .readFile(path.join(root, id), "utf8")
         .then((text) => JSON.parse(text) as ResearchRecord)
         .catch(() => null);
-      files.set(name, { mtime, record });
+      files.set(id, { mtime, record });
     }),
   );
-  const records = [...files.values()]
-    .map((f) => f.record)
-    .filter((record): record is ResearchRecord => Boolean(record?.post?.slides?.length))
-    .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
-  store.__instantsRecords = { key, records, files };
-  return records;
+  const shelfOf = new Map<string, Shelf>();
+  const bySlug = new Map<string, ResearchRecord>();
+  for (const { shelf, id } of [...present].sort((a, b) => SHELF_RANK[b.shelf] - SHELF_RANK[a.shelf])) {
+    const record = files.get(id)?.record;
+    if (!record?.post?.slides?.length) continue;
+    bySlug.set(record.slug, record);
+    shelfOf.set(record.slug, shelf);
+  }
+  const records = [...bySlug.values()].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
+  const on = (shelf: Shelf) => records.filter((r) => shelfOf.get(r.slug) === shelf).map((r) => r.slug);
+  const next = { key, records, files, liked: on("liked"), hidden: on("hidden") };
+  store.__instantsRecords = next;
+  return next;
 }
 
+const getLibrary = cache(loadLibrary);
+
 /** Every post, newest research first. Hidden posts are included; callers filter. Deduped per request. */
-export const getRecords: () => Promise<ResearchRecord[]> = cache(loadRecords);
+export const getRecords = async (): Promise<ResearchRecord[]> => (await getLibrary()).records;
 
 export async function getRecord(slug: string): Promise<ResearchRecord | null> {
   if (!/^[a-z0-9-]+$/.test(slug)) return null;
   if (hubMode()) return hubRecord(slug);
   await ensureStore().catch(() => {});
+  const found = findPost(slug);
+  if (!found) return null;
   return fs
-    .readFile(path.join(postsDir(), `${slug}.json`), "utf8")
+    .readFile(found.file, "utf8")
     .then((text) => JSON.parse(text) as ResearchRecord)
     .catch(() => null);
 }
@@ -99,9 +126,33 @@ async function readActivity(): Promise<Activity> {
   return { ...structuredClone(EMPTY_ACTIVITY), ...stored };
 }
 
+/**
+ * Hides used to be a local list. Move those posts to the store's hidden/
+ * shelf once, so the list syncs like every hide made since.
+ */
+function moveLegacyHidden() {
+  store.__instantsHiddenMoved ??= (async () => {
+    const stored = await readActivity().catch(() => null);
+    if (!stored?.hidden.length) return;
+    await ensureStore().catch(() => {});
+    for (const slug of stored.hidden) {
+      if (findPost(slug)?.shelf === "posts") await movePost(slug, "hidden");
+    }
+    await updateActivity((a) => {
+      a.hidden = [];
+    });
+  })().catch(() => {
+    store.__instantsHiddenMoved = undefined;
+  });
+  return store.__instantsHiddenMoved;
+}
+
+/** Local activity, with `liked` and `hidden` read from the store's shelves. */
 export async function getActivity(): Promise<Activity> {
-  if (hubMode()) return structuredClone(EMPTY_ACTIVITY);
-  return readActivity().catch(() => structuredClone(EMPTY_ACTIVITY));
+  if (!hubMode()) await moveLegacyHidden();
+  const base = hubMode() ? structuredClone(EMPTY_ACTIVITY) : await readActivity().catch(() => structuredClone(EMPTY_ACTIVITY));
+  const { liked, hidden } = await getLibrary();
+  return { ...base, liked, hidden };
 }
 
 /** Serialized read-modify-write of the activity file, shared across bundles and hot reloads. */

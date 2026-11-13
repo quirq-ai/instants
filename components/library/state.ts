@@ -10,9 +10,9 @@ export type LibraryState = {
   tag: string;
   sort: string;
   view: string;
-  hidden: string;
+  shelf: string; // "" (everything not hidden), "liked" or "hidden"
 };
 
 export const LIBRARY_KEYS: (keyof LibraryState)[] = [
-  "q", "topic", "kind", "status", "stack", "has", "year", "tag", "sort", "view", "hidden",
+  "q", "topic", "kind", "status", "stack", "has", "year", "tag", "sort", "view", "shelf",
 ];
