@@ -152,10 +152,15 @@ export type ResearchRecord = {
   post: GeneratedPost;
 };
 
-/** Per-user state about posts, stored server-side. */
+/**
+ * State about posts. `liked` and `hidden` are read from the content store
+ * (the liked/ and hidden/ folders) and sync with it; the rest is per-user
+ * and stays on this machine.
+ */
 export type Activity = {
   saved: string[]; // slugs
   pinned: string[];
+  liked: string[];
   hidden: string[];
   read: Record<string, string>; // slug -> ISO time first opened
   notes: Record<string, { text: string; at: string }[]>;

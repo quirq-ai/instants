@@ -1,15 +1,16 @@
 // Feed ordering. Pure functions, used by the server page.
 import type { Activity, ResearchRecord } from "@/lib/research/types";
 
-export type FeedTab = "latest" | "rediscover" | "saved";
+export type FeedTab = "latest" | "rediscover" | "liked" | "saved";
 export const FEED_TABS: { id: FeedTab; label: string }[] = [
   { id: "latest", label: "Latest" },
   { id: "rediscover", label: "Rediscover" },
+  { id: "liked", label: "Liked" },
   { id: "saved", label: "Saved" },
 ];
 
 export function parseTab(value: unknown): FeedTab {
-  return value === "rediscover" || value === "saved" ? value : "latest";
+  return value === "rediscover" || value === "liked" || value === "saved" ? value : "latest";
 }
 
 /** Small stable string hash (FNV-1a) for seeded shuffles. */
@@ -35,6 +36,10 @@ export function spreadSameTitles(records: ResearchRecord[]) {
 
 export function orderFeed(records: ResearchRecord[], activity: Activity, tab: FeedTab, today = new Date()) {
   const pinned = new Set(activity.pinned);
+  if (tab === "liked") {
+    const liked = new Set(activity.liked);
+    return records.filter((r) => liked.has(r.slug)); // already newest research first
+  }
   if (tab === "saved") {
     const order = new Map(activity.saved.map((slug, i) => [slug, i]));
     return records

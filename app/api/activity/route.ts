@@ -1,8 +1,10 @@
-// Per-user activity (save, pin, hide, read, notes). Local only.
+// Activity on posts. Like and hide move the post between the store's shelves
+// (posts/, liked/, hidden/) and sync with it; save, pin, read and notes are per-user.
 import { getActivity, getRecord, updateActivity } from "@/lib/research/library";
+import { findPost, movePost } from "@/lib/research/store";
 import { localOnly } from "@/lib/server/local-only";
 
-const ACTIONS = ["save", "unsave", "pin", "unpin", "hide", "unhide", "read", "note", "deleteNote"] as const;
+const ACTIONS = ["save", "unsave", "pin", "unpin", "like", "unlike", "hide", "unhide", "read", "note", "deleteNote"] as const;
 type Action = (typeof ACTIONS)[number];
 
 /** A timestamp id no other note on this post already uses. */
@@ -49,14 +51,19 @@ export async function POST(request: Request) {
     return Response.json({ error: "Note id (at) is required" }, { status: 400 });
   }
 
-  const activity = await updateActivity((a) => {
+  // A post sits on one shelf, so liking a hidden post unhides it and hiding a liked one unlikes it.
+  if (action === "like") await movePost(slug, "liked");
+  else if (action === "hide") await movePost(slug, "hidden");
+  else if (action === "unlike" && findPost(slug)?.shelf === "liked") await movePost(slug, "posts");
+  else if (action === "unhide" && findPost(slug)?.shelf === "hidden") await movePost(slug, "posts");
+  if (["like", "unlike", "hide", "unhide"].includes(action)) return Response.json(await getActivity());
+
+  await updateActivity((a) => {
     switch (action) {
       case "save": a.saved = add(a.saved, slug); break;
       case "unsave": a.saved = remove(a.saved, slug); break;
       case "pin": a.pinned = add(a.pinned, slug); break;
       case "unpin": a.pinned = remove(a.pinned, slug); break;
-      case "hide": a.hidden = add(a.hidden, slug); break;
-      case "unhide": a.hidden = remove(a.hidden, slug); break;
       case "read": if (!a.read[slug]) a.read = { ...a.read, [slug]: new Date().toISOString() }; break;
       case "note":
         a.notes = { ...a.notes, [slug]: [...(a.notes[slug] ?? []), { text, at: uniqueAt(a.notes[slug] ?? []) }] };
@@ -69,5 +76,5 @@ export async function POST(request: Request) {
         break;
     }
   });
-  return Response.json(activity);
+  return Response.json(await getActivity());
 }

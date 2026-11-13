@@ -6,6 +6,7 @@ import { LayoutGrid, List, Search, X } from "lucide-react";
 import type { ResearchRecord, VideoStatus } from "@/lib/research/types";
 import { researchYear, slideTypes } from "@/components/post/meta";
 import { PostCard, PostRow } from "./post-card";
+import { useViewOnly } from "@/components/shell/view-only";
 import { LIBRARY_KEYS, type LibraryState } from "./state";
 
 const SORTS = [
@@ -51,12 +52,16 @@ function haystack(record: ResearchRecord) {
 export function LibraryBrowser({
   records,
   initial,
+  allCount,
+  likedCount,
   hiddenCount,
   read,
   videos = {},
 }: {
   records: ResearchRecord[];
   initial: LibraryState;
+  allCount: number;
+  likedCount: number;
   hiddenCount: number;
   read: string[];
   videos?: Record<string, VideoStatus>;
@@ -121,8 +126,33 @@ export function LibraryBrowser({
     { key: "year", label: "Year" },
   ];
 
+  const viewOnly = useViewOnly();
+  const SHELF_TABS = [
+    { id: "", label: "All", count: allCount },
+    { id: "liked", label: "Liked", count: likedCount },
+    // A view-only site never loads hidden posts.
+    ...(viewOnly ? [] : [{ id: "hidden", label: "Hidden", count: hiddenCount }]),
+  ];
+
   return (
     <div className="flex flex-col gap-4">
+      <nav aria-label="Library panels" className="flex gap-1 border-b border-line">
+        {SHELF_TABS.map(({ id, label, count }) => {
+          const current = state.shelf === id;
+          return (
+            <Link
+              key={label}
+              href={id ? `/library?shelf=${id}` : "/library"}
+              aria-current={current ? "page" : undefined}
+              className={`-mb-px border-b-2 px-3 py-2.5 text-sm transition ${
+                current ? "border-ink font-semibold text-ink" : "border-transparent text-muted-foreground hover:text-ink"
+              }`}
+            >
+              {label} <span className="text-faint">{count}</span>
+            </Link>
+          );
+        })}
+      </nav>
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-0 flex-1 basis-60">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-faint" />
@@ -222,11 +252,6 @@ export function LibraryBrowser({
               Clear filters
             </button>
           )}
-          {hiddenCount > 0 && (
-            <Link href={state.hidden ? "/library" : "/library?hidden=1"} className="hover:text-ink hover:underline">
-              {state.hidden ? "Hide hidden posts" : `${hiddenCount} hidden`}
-            </Link>
-          )}
         </span>
       </div>
 
@@ -234,7 +259,13 @@ export function LibraryBrowser({
         <div className="flex flex-col items-center rounded-[var(--radius)] border border-dashed border-line-strong px-6 py-14 text-center">
           <h2 className="font-display text-[28px]">No posts match</h2>
           <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-            {records.length ? "Loosen a filter or try a different word." : "Nothing has been posted yet."}
+            {records.length
+              ? "Loosen a filter or try a different word."
+              : state.shelf === "liked"
+                ? "Nothing liked yet. Tap the heart on a post to keep it here."
+                : state.shelf === "hidden"
+                  ? "Nothing is hidden. Hide a post from its page to move it here."
+                  : "Nothing has been posted yet."}
           </p>
           {records.length > 0 ? (
             <button type="button" onClick={clear} className="mt-4 rounded-[10px] bg-ink px-4 py-2 text-sm font-medium text-bg">

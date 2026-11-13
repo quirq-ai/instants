@@ -19,6 +19,7 @@ import {
   spaceDirFor,
   storeDir,
   writeSpaceConfig,
+  SHELVES,
   type SpaceConfig,
 } from "@/lib/research/store";
 import { job } from "./job";
@@ -503,7 +504,12 @@ export async function pending(): Promise<PendingSource[]> {
   const root = storeDir();
   const src = path.join(root, "sources");
   const entries = await fsp.readdir(src, { withFileTypes: true }).catch(() => []);
-  const posts = await fsp.readdir(path.join(root, "posts")).catch(() => [] as string[]);
+  // Liked and hidden posts count: their sources already have a post.
+  const posts = (
+    await Promise.all(
+      SHELVES.map(async (shelf) => (await fsp.readdir(path.join(root, shelf)).catch(() => [] as string[])).map((f) => `${shelf}/${f}`)),
+    )
+  ).flat();
   const made = new Set<string>();
   const uploadSlugs = new Set<string>();
   await Promise.all(
@@ -511,7 +517,7 @@ export async function pending(): Promise<PendingSource[]> {
       .filter((f) => f.endsWith(".json"))
       .map(async (f) => {
         const r = await fsp
-          .readFile(path.join(root, "posts", f), "utf8")
+          .readFile(path.join(root, f), "utf8")
           .then((t) => JSON.parse(t) as { slug?: string; origin?: string; sourceDir?: string; path?: string })
           .catch(() => null);
         if (!r) return;

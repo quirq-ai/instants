@@ -91,17 +91,23 @@ async function pool<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>
 
 const SLUG = /^[a-z0-9-]+$/;
 
-export async function hubRecords(): Promise<ResearchRecord[]> {
-  const slugs = (await list("posts")).filter((f) => f.endsWith(".json")).map((f) => f.slice(0, -5)).filter((s) => SLUG.test(s));
-  const records = await pool(slugs, 24, (slug) => json<ResearchRecord>(`posts/${slug}.json`));
-  return records
+const slugsIn = async (dir: string) =>
+  (await list(dir)).filter((f) => f.endsWith(".json")).map((f) => f.slice(0, -5)).filter((s) => SLUG.test(s));
+
+/** Posts on the posts/ and liked/ shelves. hidden/ is never read: a view-only site does not show it. */
+export async function hubLibrary(): Promise<{ records: ResearchRecord[]; liked: string[] }> {
+  const [plain, liked] = await Promise.all([slugsIn("posts"), slugsIn("liked")]);
+  const likedSet = new Set(liked);
+  const files = [...liked.map((s) => `liked/${s}.json`), ...plain.filter((s) => !likedSet.has(s)).map((s) => `posts/${s}.json`)];
+  const records = (await pool(files, 24, (file) => json<ResearchRecord>(file)))
     .filter((record): record is ResearchRecord => Boolean(record?.post?.slides?.length))
     .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
+  return { records, liked: records.filter((r) => likedSet.has(r.slug)).map((r) => r.slug) };
 }
 
 export async function hubRecord(slug: string): Promise<ResearchRecord | null> {
   if (!SLUG.test(slug)) return null;
-  return json<ResearchRecord>(`posts/${slug}.json`);
+  return (await json<ResearchRecord>(`posts/${slug}.json`)) ?? json<ResearchRecord>(`liked/${slug}.json`);
 }
 
 export async function hubVideoStatus(slug: string): Promise<VideoStatus | null> {

@@ -11,6 +11,11 @@ export declare function writeSpaceConfig(next: SpaceConfig): Promise<SpaceConfig
 export declare function spaceDirFor(project: string): string;
 export declare function storeDir(): string;
 export declare function postsDir(): string;
+export type Shelf = "posts" | "liked" | "hidden";
+export declare const SHELVES: Shelf[];
+export declare function findPost(slug: string, root?: string): { shelf: Shelf; file: string } | null;
+export declare function postFile(slug: string): string;
+export declare function movePost(slug: string, shelf: Shelf): Promise<Shelf>;
 export declare function mediaDir(): string;
 export declare function videosDir(): string;
 export declare function sourcesDir(): string;

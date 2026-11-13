@@ -6,7 +6,7 @@ import path from "node:path";
 import { collect, folderMeta, isReadable, IMAGE_EXT, listFiles, walk } from "./collect.mjs";
 import { copyMedia, pickMedia } from "./media.mjs";
 import { buildPrompt, generatePost, PROMPT_VERSION } from "./generate.mjs";
-import { ensureStore, mediaDir, postsDir, sourcesDir, storeDir } from "./store.mjs";
+import { ensureStore, mediaDir, postFile, SHELVES, sourcesDir, storeDir } from "./store.mjs";
 
 // Bundled by Next, import.meta.dirname is undefined; the server runs from the app root.
 const APP_ROOT = import.meta.dirname ? path.resolve(import.meta.dirname, "..") : process.cwd();
@@ -34,14 +34,19 @@ export const slugify = (value) =>
 
 async function readRecords() {
   await ensureStore();
-  const POSTS_DIR = postsDir();
-  const files = await fs.readdir(POSTS_DIR).catch(() => []);
+  // Liked and hidden posts are still posts: their sources must not be generated again.
   const records = await Promise.all(
-    files
-      .filter((f) => f.endsWith(".json"))
-      .map((f) => fs.readFile(path.join(POSTS_DIR, f), "utf8").then(JSON.parse).catch(() => null)),
+    SHELVES.map(async (shelf) => {
+      const dir = path.join(storeDir(), shelf);
+      const files = await fs.readdir(dir).catch(() => []);
+      return Promise.all(
+        files
+          .filter((f) => f.endsWith(".json"))
+          .map((f) => fs.readFile(path.join(dir, f), "utf8").then(JSON.parse).catch(() => null)),
+      );
+    }),
   );
-  return records.filter(Boolean);
+  return records.flat().filter(Boolean);
 }
 
 /**
@@ -289,7 +294,7 @@ async function processTarget(target, { force, emit, records, reserved, signal })
     meta,
     post,
   };
-  await writeJson(path.join(postsDir(), `${slug}.json`), record);
+  await writeJson(postFile(slug), record);
   return { slug, record };
 }
 
@@ -392,7 +397,7 @@ export async function ingestUpload({ title, text, files = [] } = {}) {
 /** Remove a record, its media, and its source folder in the store if it came from an upload. */
 export async function deleteRecord(slug) {
   if (!/^[a-z0-9-]+$/.test(slug)) throw new Error("invalid slug");
-  const file = path.join(postsDir(), `${slug}.json`);
+  const file = postFile(slug);
   const UPLOADS_DIR = sourcesDir();
   const record = await fs.readFile(file, "utf8").then(JSON.parse).catch(() => null);
   await fs.rm(file, { force: true });

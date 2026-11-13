@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bookmark, Clapperboard, Compass, LayoutGrid, Plus, Sparkles } from "lucide-react";
+import { Bookmark, Clapperboard, Compass, Heart, LayoutGrid, Plus, Sparkles } from "lucide-react";
 import { Page, PageHeader } from "@/components/shell/page-header";
 import { FeedList } from "@/components/feed/feed-list";
 import { FEED_TABS, orderFeed, spreadSameTitles, parseTab, type FeedTab } from "@/components/feed/order";
@@ -28,6 +28,12 @@ function Empty({ tab, filtered, total }: { tab: FeedTab; filtered: boolean; tota
         }
       : filtered
         ? { icon: Compass, title: "Nothing matches these filters", body: "Try another topic, switch to All posts, or make a video from any post." }
+        : tab === "liked"
+          ? {
+              icon: Heart,
+              title: "Nothing liked yet",
+              body: "Tap the heart on any post, or press l while a card is selected. Liked posts move to the library's liked folder and sync with it.",
+            }
         : tab === "saved"
           ? {
               icon: Bookmark,
@@ -84,7 +90,7 @@ export default async function FeedPage({
   const inTopic = (topic ? visible.filter((r) => r.post.topic === topic) : visible).filter(
     (r) => media === "all" || hasVideo(r.slug),
   );
-  const records = tab === "saved" ? orderFeed(inTopic, activity, tab) : spreadSameTitles(orderFeed(inTopic, activity, tab));
+  const records = tab === "saved" || tab === "liked" ? orderFeed(inTopic, activity, tab) : spreadSameTitles(orderFeed(inTopic, activity, tab));
   const viewOnly = hubMode();
   // View-only deploys keep no read or saved state.
   const unread = viewOnly ? 0 : visible.filter((r) => !activity.read[r.slug]).length;
@@ -179,6 +185,7 @@ export default async function FeedPage({
         {records.length ? (
           <FeedList
             records={records}
+            liked={activity.liked}
             saved={activity.saved}
             pinned={activity.pinned}
             read={Object.keys(activity.read)}

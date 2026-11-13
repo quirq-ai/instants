@@ -12,6 +12,10 @@ export {
   spaceDirFor,
   storeDir,
   postsDir,
+  SHELVES,
+  findPost,
+  postFile,
+  movePost,
   mediaDir,
   videosDir,
   sourcesDir,
@@ -22,4 +26,4 @@ export {
   ensureStore,
   recordSourcePath,
 } from "@/research/store.mjs";
-export type { SpaceConfig } from "@/research/store.mjs";
+export type { Shelf, SpaceConfig } from "@/research/store.mjs";

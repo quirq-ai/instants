@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useRef, useState } from "react";
-import { Bookmark, Download, EyeOff, FileText, FolderOpen, Link2, Pin, Share } from "lucide-react";
+import { Bookmark, Download, EyeOff, FileText, FolderOpen, Heart, Link2, Pin, Share } from "lucide-react";
 import { useViewOnly } from "@/components/shell/view-only";
 import { InstagramIcon, XIcon, shareElsewhere, shareToInstagram, shareToX, videoMedia } from "./share";
 import { toast } from "sonner";
@@ -52,6 +52,7 @@ export function Section({ title, children }: { title: string; children: React.Re
 /** Interactive post body: carousel, actions, key numbers and sources share the slide index. */
 export function PostView({
   record,
+  liked,
   saved,
   pinned,
   hidden,
@@ -62,6 +63,7 @@ export function PostView({
   video: initialVideo = null,
 }: {
   record: ResearchRecord;
+  liked: boolean;
   saved: boolean;
   pinned: boolean;
   hidden: boolean;
@@ -75,10 +77,11 @@ export function PostView({
   const [index, setIndex] = useState(0);
   const handle = useRef<SlideCarouselHandle>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
+  const like = useActivityFlag(record.slug, liked, "like", "unlike", { on: "Liked", off: "Removed from liked" });
   const save = useActivityFlag(record.slug, saved, "save", "unsave", { on: "Saved", off: "Removed from saved" });
   const pin = useActivityFlag(record.slug, pinned, "pin", "unpin", { on: "Pinned", off: "Unpinned" });
   const hide = useActivityFlag(record.slug, hidden, "hide", "unhide", {
-    on: "Hidden from feed and library",
+    on: "Moved to hidden",
     off: "Visible again",
   });
   const viewOnly = useViewOnly();
@@ -152,6 +155,9 @@ export function PostView({
         <div className="flex flex-wrap items-center gap-2">
           {!viewOnly && (
             <>
+          <Pill label={like[0] ? "Liked" : "Like"} active={like[0]} onClick={like[1]}>
+            <Heart className="size-3.5" fill={like[0] ? "currentColor" : "none"} />
+          </Pill>
           <Pill label={save[0] ? "Saved" : "Save"} active={save[0]} onClick={save[1]}>
             <Bookmark className="size-3.5" fill={save[0] ? "currentColor" : "none"} />
           </Pill>

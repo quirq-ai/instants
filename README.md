@@ -34,12 +34,16 @@ Everything Instants generates lives in one store directory:
 
 ```
 posts/<slug>.json          post records
+liked/<slug>.json          liked posts (moved here from posts/)
+hidden/<slug>.json         hidden posts (moved here from posts/)
 media/<slug>/*             slide images        -> /research/media/<slug>/<file>
 videos/<slug>.mp4|.jpg     videos and posters  -> /research/videos/<slug>.mp4
 videos/<slug>.status.json  ready render result
 sources/<slug>/*           uploaded sources (+ .upload.json)
 instants.json, README.md   manifest and layout notes
 ```
+
+Liking or hiding a post moves its record between `posts/`, `liked/` and `hidden/`, so both lists sync with the space and show up as folders on Spacehub. The Library has a Liked and a Hidden panel, and the feed has a Liked tab. A view-only deploy shows liked posts and never loads hidden ones.
 
 The store is `.research-cache/store/` until a space is connected, then the Spacehub clone at `.research-cache/space/<space>__<project>/`. Per-user state stays outside it: `activity.json` (saves, pins, notes, reads), `sources.json` (scan cache), `space.json` (space config), `space-pending.json` (auto-generate failures) and `videos-work/<slug>/` (video agent working dirs and live status).
 

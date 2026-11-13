@@ -2,11 +2,9 @@
 // the shell (and a 200 status) before a page can call notFound(), so the
 // existence check runs here, before rendering starts, and rewrites misses to
 // an unmatched path that Next serves with a real 404.
-import { access } from "node:fs/promises";
-import path from "node:path";
 import { NextResponse, type NextRequest } from "next/server";
 import { topicSlug } from "@/lib/research/format";
-import { postsDir } from "@/lib/research/store";
+import { findPost } from "@/lib/research/store";
 import { hubMode, hubRecord } from "@/lib/research/hub";
 import { TOPICS } from "@/lib/research/types";
 
@@ -16,10 +14,7 @@ const MISSING = "/_instants-not-found";
 async function postExists(slug: string) {
   if (!/^[a-z0-9-]+$/.test(slug)) return false;
   if (hubMode()) return Boolean(await hubRecord(slug).catch(() => null));
-  return access(path.join(postsDir(), `${slug}.json`)).then(
-    () => true,
-    () => false,
-  );
+  return Boolean(findPost(slug));
 }
 
 export async function proxy(request: NextRequest) {
