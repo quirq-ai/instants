@@ -23,7 +23,7 @@ import { ProgressPanel } from "./progress-panel";
 type State = SourceStatus["folders"][number]["state"];
 type Folder = SourceStatus["folders"][number] & { root: string };
 
-const STATES: State[] = ["posted", "new", "changed", "skipped", "failed"];
+const STATES: State[] = ["posted", "new", "changed", "skipped", "failed", "deleted"];
 
 export const STATE_STYLE: Record<State, { label: string; className: string }> = {
   posted: { label: "Posted", className: "bg-brand-soft text-brand" },
@@ -31,6 +31,7 @@ export const STATE_STYLE: Record<State, { label: string; className: string }> = 
   changed: { label: "Changed", className: "bg-[color-mix(in_oklab,var(--warn)_10%,transparent)] text-[var(--warn)]" },
   skipped: { label: "Skipped", className: "bg-surface-3 text-muted-foreground" },
   failed: { label: "Failed", className: "bg-[color-mix(in_oklab,var(--danger)_14%,transparent)] text-[var(--danger)]" },
+  deleted: { label: "Deleted", className: "bg-surface-3 text-muted-foreground line-through decoration-1" },
 };
 
 const btn =
@@ -38,7 +39,15 @@ const btn =
 const primary = `${btn} bg-brand text-brand-ink hover:opacity-90`;
 const secondary = `${btn} border border-line-strong bg-surface text-ink hover:bg-surface-2`;
 
-export function SourcesView({ sources, titles }: { sources: SourceStatus[]; titles: Record<string, string> }) {
+export function SourcesView({
+  sources,
+  titles,
+  hidden = [],
+}: {
+  sources: SourceStatus[];
+  titles: Record<string, string>;
+  hidden?: string[];
+}) {
   const router = useRouter();
   const { state: job, runJson } = useGenerate();
   const [filter, setFilter] = useState<State | "all">("all");
@@ -46,6 +55,7 @@ export function SourcesView({ sources, titles }: { sources: SourceStatus[]; titl
   const [scanning, setScanning] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const busy = job.phase === "running";
+  const hiddenSet = useMemo(() => new Set(hidden), [hidden]);
 
   const folders: Folder[] = useMemo(
     () => sources.flatMap((s) => s.folders.map((f) => ({ ...f, root: s.root }))),
@@ -58,7 +68,9 @@ export function SourcesView({ sources, titles }: { sources: SourceStatus[]; titl
   }, [folders]);
   const pending = counts.new + counts.changed;
   const visible = folders.filter(
-    (f) => (filter === "all" || f.state === filter) && f.name.toLowerCase().includes(query.trim().toLowerCase()),
+    (f) =>
+      (filter === "all" || f.state === filter) &&
+      (f.parent ? `${f.parent}/${f.name}` : f.name).toLowerCase().includes(query.trim().toLowerCase()),
   );
 
   async function scan(quiet = false) {
@@ -81,6 +93,21 @@ export function SourcesView({ sources, titles }: { sources: SourceStatus[]; titl
     if (sources.length === 0) void scan(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  async function restore(folder: Folder) {
+    try {
+      const res = await fetch("/api/sources", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "restore", path: folder.path }),
+      });
+      if (!res.ok) throw new Error(((await res.json().catch(() => null)) as { error?: string } | null)?.error ?? "Could not restore");
+      toast.success(`${folder.name} can be posted again`);
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not restore");
+    }
+  }
 
   async function generate(body: Parameters<typeof runJson>[0]) {
     const result = await runJson(body);
@@ -193,9 +220,11 @@ export function SourcesView({ sources, titles }: { sources: SourceStatus[]; titl
                 key={f.path}
                 folder={f}
                 title={f.slug ? titles[f.slug] : undefined}
+                hidden={Boolean(f.slug && hiddenSet.has(f.slug))}
                 live={job.rows[f.name]?.status}
                 disabled={busy}
                 onRun={() => generate({ targets: [f.path], force: f.state === "posted" })}
+                onRestore={() => restore(f)}
               />
             ))}
           </ul>
@@ -207,7 +236,7 @@ export function SourcesView({ sources, titles }: { sources: SourceStatus[]; titl
           <AlertDialogHeader>
             <AlertDialogTitle>Regenerate every post?</AlertDialogTitle>
             <AlertDialogDescription>
-              Instants will rewrite all {folders.length - counts.skipped} folders from scratch. This calls Claude for each
+              Instants will rewrite all {folders.length - counts.skipped - counts.deleted} folders from scratch. This calls Claude for each
               one and can take many minutes. Existing posts are replaced as they finish.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -228,6 +257,7 @@ function SummaryBar({ counts, total }: { counts: Record<State, number>; total: n
     changed: "color-mix(in oklab, var(--warn) 55%, var(--surface))",
     skipped: "var(--line-strong)",
     failed: "var(--danger)",
+    deleted: "var(--faint)",
   };
   return (
     <div className="mt-4">
@@ -240,7 +270,7 @@ function SummaryBar({ counts, total }: { counts: Record<State, number>; total: n
           counts[s] ? <div key={s} style={{ width: `${(counts[s] / Math.max(total, 1)) * 100}%`, background: colors[s] }} /> : null,
         )}
       </div>
-      <dl className="mt-3 grid grid-cols-3 gap-x-4 gap-y-2 sm:grid-cols-5">
+      <dl className="mt-3 grid grid-cols-3 gap-x-4 gap-y-2 sm:grid-cols-6">
         {STATES.map((s) => (
           <div key={s} className="flex items-center gap-2">
             <span className="size-2.5 rounded-full" style={{ background: colors[s] }} aria-hidden />
@@ -256,28 +286,41 @@ function SummaryBar({ counts, total }: { counts: Record<State, number>; total: n
 function FolderRow({
   folder,
   title,
+  hidden,
   live,
   disabled,
   onRun,
+  onRestore,
 }: {
   folder: Folder;
   title?: string;
+  hidden: boolean;
   live?: string;
   disabled: boolean;
   onRun: () => void;
+  onRestore: () => void;
 }) {
   const style = STATE_STYLE[folder.state];
-  const canRun = folder.state !== "skipped";
+  const canRun = folder.state !== "skipped" && folder.state !== "deleted";
   return (
     <li className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
       <div className="min-w-0 flex-1 basis-56">
         <div className="flex items-center gap-2">
           <span className="truncate font-medium text-ink" title={folder.path}>
+            {folder.parent && <span className="font-normal text-muted-foreground">{folder.parent}/</span>}
             {folder.name}
           </span>
           <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${style.className}`}>
             {style.label}
           </span>
+          {hidden && (
+            <span
+              title="Hidden from the feed. Regenerate it for a fresh take."
+              className="shrink-0 rounded-full bg-surface-3 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+            >
+              Hidden
+            </span>
+          )}
         </div>
         {folder.reason && (
           <p className="mt-0.5 flex items-start gap-1 text-xs text-muted-foreground">
@@ -304,6 +347,17 @@ function FolderRow({
           className={folder.state === "posted" ? secondary : primary}
         >
           {folder.state === "posted" ? "Regenerate" : "Create post"}
+        </button>
+      )}
+      {folder.state === "deleted" && (
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={onRestore}
+          aria-label={`Restore ${folder.name} so it can be posted again`}
+          className={secondary}
+        >
+          Restore
         </button>
       )}
     </li>

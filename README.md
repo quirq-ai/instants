@@ -28,6 +28,10 @@ npm run research -- --concurrency 3
 
 Each folder is read (all formats, git history, images), summarized into a numbered source list, and sent to Claude, which returns a structured post. Records are written to the content store's `posts/<slug>.json` and media to its `media/<slug>/` (served at `/research/media/...`). The same engine runs from the Sources and Add pages.
 
+The scan looks up to 4 levels below each root (`INSTANTS_SCAN_DEPTH` changes it). A project (a folder with `.git`, `package.json`, `pyproject.toml` and the like) is always one post, so its internals never become posts. A plain folder is opened up only when it groups projects: two or more projects or repositories, or a single one with nothing else beside it. Folders named like parts of one codebase (`frontend`, `backend`, `ios`, `server`, ...) do not count. A repository holding two or more repositories (a coordination repo) posts only those inner repositories.
+
+Deleting a post (post page or feed card, local mode only) removes its record, slides and video, and marks its folder in `.research-cache/deleted.json` so no scan, batch or `--force` run posts it again. Sources lists it as Deleted with a Restore button. Hidden posts are not marked: they stay on Sources with a Hidden badge and can be regenerated.
+
 ## Content store and Spacehub sync
 
 Everything Instants generates lives in one store directory:

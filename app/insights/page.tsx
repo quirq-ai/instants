@@ -49,7 +49,7 @@ export default async function InsightsPage() {
   }
 
   const folders = sources.flatMap((s) => s.folders);
-  const eligible = folders.filter((f) => f.state !== "skipped").length;
+  const eligible = folders.filter((f) => f.state !== "skipped" && f.state !== "deleted").length;
   const covered = folders.filter((f) => f.state === "posted").length;
   const commits = records.reduce((s, r) => s + (r.meta?.git?.commits ?? 0), 0);
   const files = records.reduce((s, r) => s + (r.meta?.fileCount ?? 0), 0);

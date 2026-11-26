@@ -13,6 +13,7 @@ import { useVideo } from "@/components/video/use-video";
 import { copyPostLink, openFolder, sendActivity, useActivityFlag } from "./activity-client";
 import { citations, keyNumbers } from "./meta";
 import { RegenerateButton } from "./regenerate";
+import { DeletePostButton } from "./delete-post";
 
 function Pill({
   label,
@@ -193,6 +194,7 @@ export function PostView({
             <Download className="size-3.5" />
           </Pill>
           {!viewOnly && <RegenerateButton slug={record.slug} />}
+          {!viewOnly && <DeletePostButton slug={record.slug} title={post.title} upload={record.origin === "upload"} />}
         </div>
         <Fragment key="meta">{meta}</Fragment>
 

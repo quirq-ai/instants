@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { forwardRef, useRef, useState } from "react";
-import { Bookmark, ChevronDown, Clapperboard, FolderOpen, Images, Link2, Loader2, Pin, Play, Share, SquareArrowOutUpRight } from "lucide-react";
+import { Bookmark, ChevronDown, Clapperboard, FolderOpen, Images, Link2, Loader2, Pin, Play, Share, SquareArrowOutUpRight, Trash2 } from "lucide-react";
 import { slideFile } from "@/components/slides/export";
 import { InstagramIcon, XIcon, shareElsewhere, shareToInstagram, shareToX, videoMedia } from "@/components/post/share";
 import { SlideCarousel } from "@/components/slides";
@@ -13,6 +13,7 @@ import { isActive } from "@/components/video/use-video";
 import { copyPostLink, openFolder, useActivityFlag } from "@/components/post/activity-client";
 import { gitSpan, researchLabel } from "@/components/post/meta";
 import { plainExcerpt } from "@/components/post/markdown";
+import { DeletePostDialog } from "@/components/post/delete-post";
 
 export function useCardFlags(slug: string, saved: boolean, pinned: boolean) {
   const save = useActivityFlag(slug, saved, "save", "unsave", { on: "Saved", off: "Removed from saved" });
@@ -159,6 +160,24 @@ export const FeedCard = forwardRef<
           <ActionButton label="Open folder" onClick={() => openFolder(record.slug)} className="max-sm:hidden">
             <FolderOpen className="size-[19px]" />
           </ActionButton>
+        )}
+        {!viewOnly && (
+          <DeletePostDialog
+            slug={record.slug}
+            title={post.title}
+            upload={record.origin === "upload"}
+            onDeleted={() => {}}
+            trigger={
+              <button
+                type="button"
+                aria-label="Delete post"
+                title="Delete post"
+                className="flex size-9 shrink-0 items-center justify-center rounded-full text-ink-2 transition hover:bg-surface-2 hover:text-[var(--danger)] max-sm:hidden"
+              >
+                <Trash2 className="size-[19px]" />
+              </button>
+            }
+          />
         )}
         {ready && (
           <button
