@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { BarChart3 } from "lucide-react";
 import { Page, PageHeader } from "@/components/shell/page-header";
-import { BarList, ColumnChart, Ring, Section, Stat, StackedBar } from "@/components/insights/charts";
+import { BarList, ColumnChart, RatioList, Ring, Section, Stat, StackedBar } from "@/components/insights/charts";
 import { getActivity, getRecords, getSourceStatus } from "@/lib/research/library";
 import { bytes, compactNumber, relativeDate, topicSlug } from "@/lib/research/format";
 import { TOPICS } from "@/lib/research/types";
@@ -94,6 +94,12 @@ export default async function InsightsPage() {
     .slice(0, 8);
 
   const opened = records.filter((r) => activity.read[r.slug]).length;
+  // Library-wide activity, counted over every post including hidden ones.
+  const slugs = new Set(all.map((r) => r.slug));
+  const savedCount = activity.saved.filter((s) => slugs.has(s)).length;
+  const hiddenCount = activity.hidden.filter((s) => slugs.has(s)).length;
+  const viewedCount = all.filter((r) => activity.read[r.slug]).length;
+  const unreadCount = all.length - viewedCount;
   const dusty = [...records]
     .sort((a, b) => {
       const ar = activity.read[a.slug] ? 1 : 0;
@@ -182,13 +188,20 @@ export default async function InsightsPage() {
         </div>
 
         <div className="grid gap-5 lg:grid-cols-[1fr_1.4fr]">
-          <Section title="Reading progress">
-            <div className="flex items-center gap-5">
-              <Ring value={opened} total={records.length} label="Posts opened" />
-              <p className="text-sm text-ink-2">
-                You have opened <strong className="text-ink">{opened}</strong> of {records.length} posts.
-                {records.length - opened > 0 && ` ${records.length - opened} are still waiting.`}
-              </p>
+          <Section title="Reading progress" description={`Across all ${all.length} posts, hidden ones included.`}>
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+              <Ring value={viewedCount} total={all.length} label="Posts viewed" />
+              <div className="min-w-0 flex-1">
+                <RatioList
+                  total={all.length}
+                  items={[
+                    { label: "Viewed", value: viewedCount },
+                    { label: "Unread", value: unreadCount, color: "var(--faint)" },
+                    { label: "Saved", value: savedCount, color: "#c9853a" },
+                    { label: "Hidden", value: hiddenCount, color: "#b8544a" },
+                  ]}
+                />
+              </div>
             </div>
           </Section>
           <Section title="Gathering dust" description="Never opened, or the oldest research first.">

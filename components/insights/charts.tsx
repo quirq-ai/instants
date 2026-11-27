@@ -185,3 +185,25 @@ export function Ring({ value, total, label }: { value: number; total: number; la
     </svg>
   );
 }
+
+/** Counts out of one shared total, each with its own share bar. */
+export function RatioList({ items, total }: { items: { label: string; value: number; color?: string }[]; total: number }) {
+  const pct = (v: number) => (total ? Math.round((v / total) * 100) : 0);
+  return (
+    <ul className="space-y-2.5">
+      {items.map((item) => (
+        <li key={item.label}>
+          <div className="flex items-baseline justify-between gap-3 text-sm">
+            <span className="text-ink">{item.label}</span>
+            <span className="shrink-0 tabular-nums text-muted-foreground">
+              <strong className="font-semibold text-ink">{item.value}</strong>/{total} · {pct(item.value)}%
+            </span>
+          </div>
+          <div className="mt-1 h-2 overflow-hidden rounded-full bg-surface-2" aria-hidden>
+            <div className="h-full rounded-full" style={{ width: `${pct(item.value)}%`, background: item.color ?? "var(--brand)" }} />
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
