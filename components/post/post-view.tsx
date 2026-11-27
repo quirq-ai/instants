@@ -14,6 +14,7 @@ import { copyPostLink, openFolder, sendActivity, useActivityFlag } from "./activ
 import { citations, keyNumbers } from "./meta";
 import { RegenerateButton } from "./regenerate";
 import { DeletePostButton } from "./delete-post";
+import { Reactions } from "./reactions";
 
 function Pill({
   label,
@@ -151,6 +152,7 @@ export function PostView({
       <div className="flex min-w-0 flex-col gap-6">
         <Fragment key="header">{header}</Fragment>
         <div className="flex flex-wrap items-center gap-2">
+          <Reactions slug={record.slug} />
           {!viewOnly && (
             <>
           <Pill label={save[0] ? "Saved" : "Save"} active={save[0]} onClick={save[1]}>

@@ -95,6 +95,8 @@ docker run -p 3000:3000 \
 
 Vercel has no disk and no background processes, so there the app is a view-only frontend over Spacehub: the public project in `INSTANTS_SPACE` is the database. Posts are read from the hub's raw file URLs (cached for `INSTANTS_REVALIDATE` seconds), slide images and videos redirect to the hub, and saving, notes, generating, videos and Space sync are hidden. New posts made on your Mac or in the Docker image reach the site once they sync to the project.
 
+The one thing visitors can write is a thumbs up or down on a post. Each browser gets one vote per post (an anonymous id cookie, stored hashed), and the server commits it to the project as `reactions/<slug>.json` over the hub connection, retrying if the branch moved. Local mode shows the counts after a sync but does not take votes.
+
 Import the repo in Vercel (framework Next.js, the defaults in `vercel.json`) and set:
 
 | Variable | Required | What it does |
@@ -104,8 +106,10 @@ Import the repo in Vercel (framework Next.js, the defaults in `vercel.json`) and
 | `INSTANTS_BRANCH` | no | Branch to read (default `main`). |
 | `SPACEHUB_HTTP` | no | Hub web address (default `https://hub.quirq.dev`, or derived from `SPACEHUB_SERVER`). |
 | `INSTANTS_STORE` | no | `hub` or `local`. Hub mode turns on by itself when `VERCEL` is set. |
+| `SPACEHUB_TOKEN` | for reactions | Output of `spacehub auth token` for a builder or agent that can write to the project. Reactions are commits by this account. Without it the thumbs show counts but are disabled. |
+| `SPACEHUB_SERVER` | no | Hub websocket address for writes (default `wss://hub.quirq.dev`). |
 
-The project must be public: the hub ignores tokens on raw file URLs. `SPACEHUB_TOKEN`, `INSTANTS_ADMIN_TOKEN` and `ANTHROPIC_API_KEY` are not used on Vercel. Try hub mode locally with `INSTANTS_STORE=hub npm run build && INSTANTS_STORE=hub npx next start`.
+The project must be public: the hub ignores tokens on raw file URLs. `INSTANTS_ADMIN_TOKEN` and `ANTHROPIC_API_KEY` are not used on Vercel. Try hub mode locally with `INSTANTS_STORE=hub npm run build && INSTANTS_STORE=hub npx next start`.
 
 ## How generation auth works
 
