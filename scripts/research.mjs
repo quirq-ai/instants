@@ -16,7 +16,7 @@ const paths = args.filter((a, i) => !a.startsWith("--") && !(ci >= 0 && i === ci
 let targets = paths;
 if (!targets.length) {
   const status = await scanRoots(DEFAULT_ROOTS);
-  targets = status.flatMap((root) => root.folders.filter((f) => f.state !== "skipped").map((f) => f.path));
+  targets = status.flatMap((root) => root.folders.filter((f) => f.state !== "skipped" && f.state !== "deleted").map((f) => f.path));
   console.log(`scanned ${DEFAULT_ROOTS.join(", ")}: ${targets.length} items`);
 }
 

@@ -13,6 +13,8 @@ import { useVideo } from "@/components/video/use-video";
 import { copyPostLink, openFolder, sendActivity, useActivityFlag } from "./activity-client";
 import { citations, keyNumbers } from "./meta";
 import { RegenerateButton } from "./regenerate";
+import { DeletePostButton } from "./delete-post";
+import { Reactions } from "./reactions";
 
 function Pill({
   label,
@@ -150,6 +152,7 @@ export function PostView({
       <div className="flex min-w-0 flex-col gap-6">
         <Fragment key="header">{header}</Fragment>
         <div className="flex flex-wrap items-center gap-2">
+          <Reactions slug={record.slug} />
           {!viewOnly && (
             <>
           <Pill label={save[0] ? "Saved" : "Save"} active={save[0]} onClick={save[1]}>
@@ -193,6 +196,7 @@ export function PostView({
             <Download className="size-3.5" />
           </Pill>
           {!viewOnly && <RegenerateButton slug={record.slug} />}
+          {!viewOnly && <DeletePostButton slug={record.slug} title={post.title} upload={record.origin === "upload"} />}
         </div>
         <Fragment key="meta">{meta}</Fragment>
 

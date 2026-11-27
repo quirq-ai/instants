@@ -167,7 +167,9 @@ export type SourceStatus = {
   folders: {
     name: string;
     path: string;
-    state: "posted" | "changed" | "new" | "skipped" | "failed";
+    /** Folders between the root and this one, e.g. "clients" (absent for a root's direct child). */
+    parent?: string;
+    state: "posted" | "changed" | "new" | "skipped" | "failed" | "deleted";
     reason?: string;
     slug?: string;
   }[];

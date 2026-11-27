@@ -47,7 +47,7 @@ async function resolveJson(body: JsonBody): Promise<{ targets: string[]; force: 
     const status = await scanRoots();
     for (const root of status) {
       for (const folder of root.folders) {
-        if (folder.state === "skipped") continue;
+        if (folder.state === "skipped" || folder.state === "deleted") continue;
         if (force || folder.state === "new" || folder.state === "changed") targets.add(folder.path);
       }
     }
